@@ -1,0 +1,229 @@
+{
+  "chat": {
+      "gpt-4-turbo": [
+          {
+              "system_name": "gpt-4-turbo",
+              "model_name": "gpt-4-1106-preview",
+              "human_name": "GPT 4 Turbo",
+              "description": "OpenAI's latest model and the best model currently availible.",
+              "context_size": 128000,
+              "max_output_length": 4095,
+              "knowledge_cutoff": "2023-04",
+              "vison": true,
+              "allow_function_call": true,
+              "provider": "openai",
+              "input_price": 0.01,
+              "completion_price": 0.03,
+              "max_image_price": 0.00765
+          }
+      ],
+      "gpt-3.5-turbo": [
+          {
+                "system_name": "gpt-3.5-turbo",
+              "model_name": "gpt-3.5-turbo-1106",
+              "human_name": "GPT 3.5 Turbo",
+              "description": "OpenAI's latest model and the best model currently availible.",
+              "context_size": 16385,
+              "max_output_length": 4095,
+              "knowledge_cutoff": "2021-09",
+              "vison": false,
+              "allow_function_call": true,
+              "provider": "openai",
+              "input_price": 0.001,
+              "completion_price": 0.002
+          }
+      ],
+      "nous-hermes-llama2-70b": [
+          {
+                "system_name": "nous-hermes-llama2-70b",
+              "model_name": "nous-hermes-llama2-70b",
+              "human_name": "Nous Hermes 70B",
+              "description": "A model based on llama 2 and further finetuned by Nous.",
+              "context_size": 4096,
+              "max_output_length": 2048,
+              "knowledge_cutoff": 2023,
+              "vison": false,
+              "allow_function_call": true,
+              "provider": "openrouter/nousresearch/nous-hermes-llama2-70b",
+              "input_price": 0.0009,
+              "completion_price": 0.0009
+          }
+      ],
+      "phind-codellama-34b": [
+          {
+                "system_name": "phind-codellama-34b",
+              "model_name": "phind-codellama-34b",
+              "human_name": "Phind Code Llama 34B",
+              "description": "A fine-tune of CodeLlama-34B on an internal dataset that helps it exceed GPT-4 on some benchmarks, including HumanEval.",
+              "context_size": 4096,
+              "max_output_length": 2048,
+              "knowledge_cutoff": 2023,
+              "vison": false,
+              "allow_function_call": true,
+              "provider": "openrouter/phind/phind-codellama-34b",
+              "input_price": 0.0004,
+              "completion_price": 0.0004
+          }
+      ],
+      "zephyr-7b-beta": [
+          {
+                "system_name": "zephyr-7b-beta",
+              "model_name": "zephyr-7b-beta",
+              "human_name": "Zephyr 7B Beta",
+              "description": "A finetune of Mistral by the Huggingface team. Uncencored and one of the best 7B models availible.",
+              "context_size": 4096,
+              "max_output_length": 2048,
+              "knowledge_cutoff": 2023,
+              "vison": false,
+              "allow_function_call": false,
+              "provider": "openrouter/huggingfaceh4/zephyr-7b-beta",
+              "input_price": 0,
+              "completion_price": 0
+          }
+      ],
+      "toppy-m-7b": [
+          {
+                "system_name": "toppy-m-7b",
+              "model_name": "toppy-m-7b",
+              "human_name": "Toppy M 7B (beta)",
+              "description": "A wild 7B parameter model that merges several Mistral models.",
+              "context_size": 32768,
+              "max_output_length": 2048,
+              "knowledge_cutoff": 2023,
+              "vison": false,
+              "allow_function_call": false,
+              "provider": "openrouter/undi95/toppy-m-7b",
+              "input_price": 0,
+              "completion_price": 0
+          }
+      ]
+  },
+  "text-to-image": {
+      "dalle-3-hd": [
+          {
+              "model_name": "dalle-3-hd",
+              "human_name": "DALL-E 3 HD",
+              "description": "The best text-to-image model availible. Can even generate correct Text.",
+              "provider": "openai",
+              "image_types": {
+                  "square": [
+                      {
+                          "width": 1024,
+                          "height": 1024,
+                          "price": 0.08
+                      }
+                  ],
+                  "portrait": [
+                      {
+                          "width": 1024,
+                          "height": 1792,
+                          "price": 0.12
+                      }
+                  ],
+                  "landscape": [
+                      {
+                          "width": 1792,
+                          "height": 1024,
+                          "price": 0.12
+                      }
+                  ]
+              }
+          }
+      ],
+      "dalle-3": [
+          {
+              "model_name": "dalle-3",
+              "human_name": "DALL-E 3",
+              "description": "Less expensive version of DALLE-3 HD.",
+              "provider": "openai",
+              "image_types": {
+                  "square": [
+                      {
+                          "width": 1024,
+                          "height": 1024,
+                          "price": 0.04
+                      }
+                  ],
+                  "portrait": [
+                      {
+                          "width": 1024,
+                          "height": 1792,
+                          "price": 0.08
+                      }
+                  ],
+                  "landscape": [
+                      {
+                          "width": 1792,
+                          "height": 1024,
+                          "price": 0.08
+                      }
+                  ]
+              }
+          }
+      ],
+      "sd-xl": [
+          {
+              "model_name": "sd-xl",
+              "human_name": "SD XL 1.6",
+              "description": "The best stable diffusion from Stability AI.",
+              "provider": "stabilityai",
+              "image_types": {
+                  "square": [
+                      {
+                          "width": 1024,
+                          "height": 1024,
+                          "price": 0.004
+                      }
+                  ],
+                  "portrait": [
+                      {
+                          "width": 768,
+                          "height": 1344,
+                          "price": 0.004
+                      }
+                  ],
+                  "landscape": [
+                      {
+                          "width": 1344,
+                          "height": 768,
+                          "price": 0.004
+                      }
+                  ]
+              }
+          }
+      ]
+  },
+  "image-upscale": {
+      "esrgan-v1-x2plus": [
+          {
+              "model_name": "esrgan-v1-x2plus",
+              "human_name": "ESRGAN v1 x2+",
+              "description": "Upscales images by 2x with high quality.",
+              "provider": "stabilityai",
+              "upscale_factor": 2
+          }
+      ]
+  },
+  "speech-to-text": {
+      "whisper-v3": [
+          {
+              "model_name": "whisper-v3",
+              "human_name": "Whisper v3",
+              "description": "The best voice-to-text model availible. Made by OpenAI.",
+              "provider": "openai",
+              "price": 0.006
+          }
+      ]
+  },
+  "text-to-speech": {
+      "openai-tts": [
+          {
+              "model_name": "openai-tts",
+              "human_name": "OpenAI TTS",
+              "description": "A relatively cheep yet high quality text-to-speech model.",
+              "provider": "openai",
+              "price": 0.015
+          }
+      ]
+  }
+}

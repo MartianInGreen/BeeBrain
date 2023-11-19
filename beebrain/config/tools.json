@@ -1,0 +1,94 @@
+{
+    "browser": [
+        {
+            "name": "Web Browser",
+            "description": "Browser the web. Access to Brave Search and scrape.",
+            "prompt": "## Browser\n### @quick_search\nYou have access to the @quick_search tool. This will search the web with the given query and return a maximum of 20 results with snippets from the webpages and urls. This is useful for quickly finding information.\n1. Your query should be at most one sentence\n2. The tool will respond and you'll get access to the full response.\n3. You should cite your sources with the corresponding url using markdown formatting. For example: [1](https://www.wikipedia.com/United_States)\n\n### @copilot\nYou have access to the @copilot tool. This will seach the web and return the full web pages. This is useful when you need a lot of details on a subject.\n\n### @scrape_url\nYou have access to the @scrape_url tool. This will return the contents of a webpage/url. This is helpful when the user has given you a webpage.\n",
+            "function": [{
+                "type": "function",
+                "function": {
+                    "name": "browser",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "browse_type": {
+                                "type": "string",
+                                "enum": ["quick_search", "copilot", "scrape_url"],
+                                "description": "The type of browser tool to use."
+                            },
+                            "query": {
+                                "type": "string",
+                                "description": "The query to search for. Or the URL to scrape."
+                            }
+                        },
+                        "required": ["query", "browse_type"]
+                    }
+                }
+            }]
+        }
+    ],
+    "python": [
+        {
+            "name": "Jupyter Notebook",
+            "description": "Runs python code in a networked jupyter notebook.",
+            "prompt": "## @python\nWhen you send a message containing Python code to @python, it will be executed in a stateful Jupyter notebook environment. Python will respond with the output of the execution or time out after 60.0 seconds. The drive at '/mnt/data' can be used to save and persist user files. This session is network enabled.\n",
+            "function": []
+        }
+    ],
+    "image": [
+        {
+            "name": "Image Generation",
+            "description": "Generate images using DALLE-3 or SD-XL",
+            "prompt": "## @image\nYou have access to the @image tool. This can be used to generate images using stable diffusion models.\n\n**Generation Guide:**\n1. If the description is not in English, translate it.\n2. Only output the tool request, nothing else.\n3. Prompts are best when they contain a description and comma sperated additions. For example 'A cat sitting infront of a fire, photorealistic, good picture' or 'A large group of people standing around a large fire in the forrest, watercolour painting, good picture'. (NEVER USE THE EXAMPLE PROMPTS)\n4. The first part of your prompt should be at least 2 detailed sentenced based on the user description. Do not write more than 4 sentences!\n5. You should add at least 5 comma separated additions and a MAXIMUM of 10.\n6. Do not display the image in any way. The images have already been displayed.\n",
+            "function": [{
+                "type": "function",
+                "function": {
+                    "name": "generate_image",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "prompt": {
+                                "type": "string",
+                                "description": "The prompt to use for image generation."
+                            },
+                            "number_of_images": {
+                                "type": "integer",
+                                "description": "The number of images to generate."
+                            },
+                            "image_aspect": {
+                                "type": "string",
+                                "enum": ["square", "portrait", "landscape"],
+                                "description": "The aspect ratio of the images to generate."
+                            }
+                        },
+                        "required": ["prompt", "number_of_images", "image_aspect"]
+                    }
+                }    
+            }]
+        }
+    ],
+    "wolfram_alpha": [
+        {
+            "name": "Wolfram Alpha",
+            "description": "Access to Wolfram|Alpha. Currated knowledge and computational engine.",
+            "prompt": "## @wolframalpha\n\nAccess dynamic computation and curated data from WolframAlpha.\n\n**Usage-Guidelines:**\n1. All requests have to be in English. Translate non-English ones.\n2. Display image URLs with Markdown syntax: ![URL]\n3. ALWAYS use this exponent notation: `6*10^14`, NEVER `6e14`.\n4. Understands natural language queries about entities in chemistry, physics, geography, history, art, astronomy, and more.\n5. Performs mathematical calculations, date and unit conversions, formula solving, etc.\n6. Convert inputs to simplified keyword queries whenever possible (e.g. convert \"how many people live in France\" to \"France population\").\n7. Use ONLY single-letter variable names, with or without integer subscript (e.g., n, n1, n_1).\n8. Use named physical constants (e.g., 'speed of light') without numerical substitution.\n9. Include a space between compound units (e.g., \"Ω m\" for \"ohm*meter\").\n10. To solve for a variable in an equation with units, consider solving a corresponding equation without units; exclude counting units (e.g., books), include genuine units (e.g., kg).\n",
+            "function": []
+        }
+    ],
+    "paper_search": [
+        {
+            "name": "Paper Search",
+            "description": "Search for papers and get summaries.",
+            "prompt": "",
+            "function": []
+        }
+    ],
+    "audio": [
+        {
+            "name": "Audio Generation",
+            "description": "Generate voice and sound effects",
+            "prompt": "## @voice\nYou have access to the @voice tool. When you input text it will return a link to an audio file with a realistic voice. \n\n## @sound_effects\nYou have access to the @sound_effects tool. You can describe a sound effect and this tool will do it's best to produce that sound effect.\n",
+            "function": []
+        }
+    ]
+}

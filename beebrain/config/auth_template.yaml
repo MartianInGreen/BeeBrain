@@ -1,0 +1,9 @@
+api_keys:
+  openai: "YOUR-API-KEY"
+  openrouter: "YOUR-API-KEY"
+  stabilityai: "YOUR-API-KEY"
+  brave-search: "YOUR-API-KEY"
+  wolfram-alpha: "YOUR-API-KEY"
+user_auth:
+  user_id: 
+  user_token:
