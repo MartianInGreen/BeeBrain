@@ -1,0 +1,7 @@
+openai
+flet
+bs4
+yaml
+e2b
+pyinstaller
+pillow 
