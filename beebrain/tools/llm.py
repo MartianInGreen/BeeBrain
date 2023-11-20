@@ -26,8 +26,8 @@ def browser(query: str, browse_type: str):
 
     return results
 
-def generate_image(prompt: str, number_of_images: int, image_aspect: str, settings):
-    results = image_gen(settings["image"][0]["model"], prompt, number_of_images, image_aspect, settings["image"][0]["quality"])
+def generate_image(prompt: str, number_of_images: int, image_aspect: str):
+    results = image_gen("sd-xl", prompt, number_of_images, image_aspect, "normal")
     return results
     #return "./out/txt2_img_9125702721.png"
 
@@ -158,6 +158,7 @@ def call_llm(model: str, prompt_list, temperature: float, tools, settings):
             logging.error(f"Error in API call: {e}")
             return []
 
+        print("Got message from llm.")
         content = completion.choices[0].message
         tool_calls = content.tool_calls
 
@@ -241,6 +242,7 @@ def call_llm(model: str, prompt_list, temperature: float, tools, settings):
                 temperature=temperature,
             )
             content = completion.choices[0].message
+            print("Got message from llm.")
 
             complete_response.append({
                 "role": "assistant",

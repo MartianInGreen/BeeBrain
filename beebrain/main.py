@@ -16,7 +16,7 @@ from tools.image import image_gen
 ### ----------------------------------------------------------
 ### Settings
 ### ----------------------------------------------------------
-settings = {"image": [{"model": "sd-xl", "quality": "medium"}]}
+settings = {"image": [{"model": "sd-xl", "quality": "medium"}], "search": [{"depth": 5}]}
 
 ### ----------------------------------------------------------
 ### functions
@@ -28,6 +28,10 @@ def change_image_model(model: str, settings):
 
 def change_image_quality(quality: str, settings):
     settings["image"][0]["quality"] = quality
+    return settings
+
+def change_search_depth(depth: int, settings):
+    settings["search"][0]["depth"] = depth
     return settings
 
 def parse_llm_names():
@@ -110,6 +114,8 @@ class ChatApp(ft.UserControl):
         self.text_input = ft.TextField(label="Type your message here...", multiline=True, expand=True)
         self.send_button = ft.IconButton(icon=ft.icons.SEND_ROUNDED, on_click=self.send_message)
 
+        self.search_depth_slider = ft.Slider(min=5, max=20, divisions=3, label="{value}", value=5, on_change=lambda _: setattr(self, 'settings', change_search_depth(self.search_depth_slider.value, settings)))
+
         self.file_selector = ft.FilePicker()
         self.file_selector_button = ft.IconButton(icon=ft.icons.ATTACH_FILE_ROUNDED, on_click=lambda _: self.file_selector.pick_files(allow_multiple=True, dialog_title="Select files to upload"))
 
@@ -117,6 +123,7 @@ class ChatApp(ft.UserControl):
 
     def build_ui(self, page):
         # Initialize agent dropdown
+        self.page = page
         agents = common.get_agents()
         for i, agent in enumerate(agents):
             if i == 0:
@@ -137,7 +144,13 @@ class ChatApp(ft.UserControl):
         # Initialize tools list
         all_tools = parse_tools()
         for each in all_tools:
-            self.tools_list.controls.append(ft.Checkbox(label=each["label"], value=False, key=each["value"]))
+            
+            if each["value"] in ["browser", "image", "python"]:
+                on_by_default = True
+            else:
+                on_by_default = False
+
+            self.tools_list.controls.append(ft.Checkbox(label=each["label"], value=on_by_default, key=each["value"]))
 
         # Construct the UI
         page.overlay.append(self.file_selector)
@@ -158,7 +171,7 @@ class ChatApp(ft.UserControl):
         )
 
         right = ft.Container(
-            content=ft.Column([self.llm_model_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), self.settings_list], width=self.center_width),
+            content=ft.Column([self.llm_model_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list], width=self.center_width),
             width=200, bgcolor=ft.colors.BLACK, margin=ft.margin.all(2)
         )
 
@@ -208,6 +221,7 @@ class ChatApp(ft.UserControl):
             code_theme="atom-one-dark",
             code_style=ft.TextStyle(font_family="Roboto Mono"),
             width=self.center_width,
+            on_tap_link=lambda e: self.page.launch_url(e.data),
         )
 
         # Combine into a single message container
@@ -313,6 +327,7 @@ class ChatApp(ft.UserControl):
                 code_theme="atom-one-dark",
                 code_style=ft.TextStyle(font_family="Roboto Mono"),
                 width=self.center_width,
+                on_tap_link=lambda e: self.page.launch_url(e.data),
             )
 
             # Combine into a single message container

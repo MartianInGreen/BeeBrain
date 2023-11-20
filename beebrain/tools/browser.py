@@ -1,4 +1,4 @@
-import requests, json, time, os, html, urllib.parse
+import requests, json, time, os, html, urllib.parse, re
 from bs4 import BeautifulSoup
 
 from common import get_api_keys
@@ -9,11 +9,22 @@ from common import get_api_keys
 
 def get_api_key():
     api_keys = get_api_keys()
-    return api_keys["brave"]
+    return api_keys["brave-search"]
 
-def quick_search(query: str, country="DE", search_lang="en", test=False): 
+def remove_html_tags(text):
+        """Remove html tags from a string"""
+        clean = re.compile('<.*?>')
+        return re.sub(clean, '', text)
+
+def quick_search(query: str, country="DE", search_lang="en", test=False, count=5): 
     encoded_query = urllib.parse.quote(query)
-    url = f"https://api.search.brave.com/res/v1/web/search?q={encoded_query}&results_filter=web&country={country}&search_lang={search_lang}&extra_snippets=true"
+
+    if count > 20:
+        count = 20
+    elif count < 3:
+        count = 3
+
+    url = f"https://api.search.brave.com/res/v1/web/search?q={encoded_query}&results_filter=web&country={country}&search_lang={search_lang}&extra_snippets=true&count={count}"
     headers = {
         "Accept": "application/json",
         "Accept-Encoding": "gzip",
@@ -63,19 +74,26 @@ def quick_search(query: str, country="DE", search_lang="en", test=False):
                 extra_snippets_length = len(data["web"]["results"][i]["extra_snippets"])
                 i_deep_results = 0
                 while i_deep_results < extra_snippets_length:
+                    to_append_result = data["web"]["results"][i]["extra_snippets"][i_deep_results]
+                    to_append_result = remove_html_tags(to_append_result)
                     deep_results.append({
-                        "snippets": data["web"]["results"][i]["extra_snippets"][i_deep_results],
+                        "snippets": to_append_result,
                     })
                     i_deep_results += 1
                 
+                description = data["web"]["results"][i]["description"]
+                description = remove_html_tags(description)
+
                 results.append({
-                    "description": data["web"]["results"][i]["description"],
+                    "description": description,
                     "url": url,
                     "deep_results": deep_results
                 })
             except:
+                description = data["web"]["results"][i]["description"]
+                description = remove_html_tags(description)
                 results.append({
-                    "description": data["web"]["results"][i]["description"],
+                    "description": description,
                     "url": url,
                 })
 
