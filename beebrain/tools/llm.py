@@ -68,7 +68,6 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None):
         # -------------------------------------
         # Getting LLM models
         # -------------------------------------
-        print(prompt_list)
         print("model: " + str(model))
         system_prompt = prompt_list[0]['content']
         system_prompt = system_prompt.replace("{{llm_name}}", model)

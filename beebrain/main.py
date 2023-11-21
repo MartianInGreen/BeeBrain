@@ -135,14 +135,14 @@ class ChatApp(ft.UserControl):
         self.tools_list = ft.Column(controls=[], width=200)
         self.settings_list = ft.ListView()
 
-        self.image_model_dropdown = ft.Dropdown(width=200, options=[], label="Image Model", on_change=lambda _: setattr(self, 'SETTING_image_model', {self.image_model_dropdown.value}))
-        self.image_quality_dropdown = ft.Dropdown(width=200, options=[ft.dropdown.Option("Low"), ft.dropdown.Option("Medium"), ft.dropdown.Option("High")], label="Image Quality", value="Medium", on_change=lambda _: setattr(self, 'SETTING_image_quality', {self.image_quality_dropdown.value}))
+        self.image_model_dropdown = ft.Dropdown(width=200, options=[], label="Image Model", on_change=lambda _: setattr(self, 'SETTING_image_model', self.image_model_dropdown.value))
+        self.image_quality_dropdown = ft.Dropdown(width=200, options=[ft.dropdown.Option("Low"), ft.dropdown.Option("Medium"), ft.dropdown.Option("High")], label="Image Quality", value="Medium", on_change=lambda _: setattr(self, 'SETTING_image_quality', self.image_quality_dropdown.value))
 
         self.chat = ft.Column([], scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER)
         self.text_input = ft.TextField(label="Type your message here...", multiline=True, expand=True)
         self.send_button = ft.IconButton(icon=ft.icons.SEND_ROUNDED, on_click=self.user_send_message)
 
-        self.search_depth_slider = ft.Slider(min=5, max=20, divisions=3, label="{value}", value=5, on_change=lambda _: setattr(self, 'SETTING_search_depth', {self.search_depth_slider.value}))
+        self.search_depth_slider = ft.Slider(min=5, max=20, divisions=3, label="{value}", value=5, on_change=lambda _: setattr(self, 'SETTING_search_depth', self.search_depth_slider.value))
 
         self.file_selector = ft.FilePicker()
         self.file_selector_button = ft.IconButton(icon=ft.icons.ATTACH_FILE_ROUNDED, on_click=lambda _: self.file_selector.pick_files(allow_multiple=True, dialog_title="Select files to upload"))
@@ -242,7 +242,7 @@ class ChatApp(ft.UserControl):
         elif sender == "tool":
             content = ft.Text("⚒️")
             if tool_name != None:
-                name = tool_name
+                name = tool_name.capitalize()
             else:
                 name = "Tool"
         elif sender == "system":
@@ -264,11 +264,12 @@ class ChatApp(ft.UserControl):
             elif tool_name == "image":
                 images = tool_info["results"]
 
+                num_images = len(images)
+
                 page_images = ft.Row(expand=False, wrap=True, width=self.center_width)
 
                 for image in images:
-                    print(image)
-                    page_images.controls.append(ft.Image(src=image, width=self.center_width))
+                    page_images.controls.append(ft.Image(src=image, width=self.center_width/num_images))
 
                 message = f"**Prompt**: '{tool_info['prompt']}'\n\n" + f"**Number of images**: {tool_info['number_of_images']}\n\n" + f"**Image aspect**: {tool_info['image_aspect']}\n\n" + f"**Image model**: {tool_info['image_model']}\n\n" + f"**Image quality**: {tool_info['image_quality']}\n\n"
                 
@@ -316,8 +317,11 @@ class ChatApp(ft.UserControl):
 
     def browser(self, query: str, browse_type: str):
         if browse_type == "quick_search":
-            raw_results = quick_search(query=query, count=self.SETTING_search_depth)
-            results = json.dumps(raw_results)
+            try: 
+                raw_results = quick_search(query=query, count=self.SETTING_search_depth)
+                results = json.dumps(raw_results)
+            except Exception as e:
+                print(e)
 
             try: 
                 sites = []
@@ -495,7 +499,6 @@ class ChatApp(ft.UserControl):
         i = 0
         while i < 5: 
             print("Calling LLM...")
-            print(prompt_list)
             response = self.call_llm(prompt_list, model_name, tools, 0.7, model_max_new_tokens, llm_api_key, llm_base_url, extra_headers)
             print("Got LLM response...")
 

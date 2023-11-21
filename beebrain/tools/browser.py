@@ -19,6 +19,9 @@ def remove_html_tags(text):
 def quick_search(query: str, country="DE", search_lang="en", test=False, count=5): 
     encoded_query = urllib.parse.quote(query)
 
+    print(count)
+    count = int(count)
+
     if count > 20:
         count = 20
     elif count < 3:
@@ -32,14 +35,14 @@ def quick_search(query: str, country="DE", search_lang="en", test=False, count=5
     }
 
     if test==False:
-        print ("Fetching results for the query: '" + encoded_query + "'.")
+        print ("Fetching results for the query: '" + query + "'.")
         start_time = time.time()
         response = requests.get(url, headers=headers)
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"Request took {elapsed_time} seconds.")
         data = response.json()
-        print ("Got " + str(len(data["web"]["results"])) + " results for the query: '" + encoded_query + "' in " + str(elapsed_time) + " seconds.")
+        print ("Got " + str(len(data["web"]["results"])) + " results for the query: '" + query + "' in " + str(elapsed_time) + " seconds.")
         #with open("raw.json", "w") as f:
         #    json.dump(data, f)
     elif test==True:
