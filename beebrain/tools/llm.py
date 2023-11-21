@@ -104,6 +104,7 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None):
             model_name = model["provider"]
             model_name = model_name.replace("openrouter/", "")
 
+
         if provider == "openrouter":
             extra_headers = {
                 "HTTP-Referer": "http://localhost",
@@ -133,7 +134,7 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None):
         # -------------------------------------
         prompt_list[0]['content'] = system_prompt
 
-        return prompt_list, tool_functions, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers
+        return prompt_list, tool_functions, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers, model_name
 
 def call_llm(model: str, prompt_list, temperature: float, tools, settings):
     chat_models = get_llms()

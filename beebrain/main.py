@@ -481,13 +481,13 @@ class ChatApp(ft.UserControl):
         ### -------------------------------------
         ### Getting LLM response
         ### -------------------------------------
-        prompt_list, tools, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers = llm.prepare_llm_response(model=llm_model, prompt_list=self.chat_history, tools=tools, llm_model_list=self.llm_model_list)
+        prompt_list, tools, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers, model_name = llm.prepare_llm_response(model=llm_model, prompt_list=self.chat_history, tools=tools, llm_model_list=self.llm_model_list)
 
         i = 0
         while i < 5: 
             print("Calling LLM...")
             print(prompt_list)
-            response = self.call_llm(prompt_list, llm_model, tools, 0.7, model_max_new_tokens, llm_api_key, llm_base_url, extra_headers)
+            response = self.call_llm(prompt_list, model_name, tools, 0.7, model_max_new_tokens, llm_api_key, llm_base_url, extra_headers)
             print("Got LLM response...")
 
             if response == None:
