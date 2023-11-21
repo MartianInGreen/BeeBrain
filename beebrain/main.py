@@ -176,7 +176,7 @@ class ChatApp(ft.UserControl):
             self.llm_model_dropdown.options.append(ft.dropdown.Option(text=model["value"]))
 
         # This is a bug, when adding a key to a dropdown option, the set lable will not be shown but is set
-        self.llm_model_dropdown.value = llm_names[0]["value"]
+        self.llm_model_dropdown.value = llm_names[1]["value"]
 
         # Initialize image model dropdown:
         self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl"))
@@ -549,7 +549,7 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(target=main, view=ft.AppView.WEB_BROWSER)
-    #ft.app(target=main)
+    #ft.app(target=main, view=ft.AppView.WEB_BROWSER)
+    ft.app(target=main)
     #setup_chat_history("default")
     #parse_tools()
