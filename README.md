@@ -50,4 +50,5 @@ To utilize BeeBrain effectively, users need to obtain API keys from various serv
 - **wolfram-alpha**: Access to Wolfram Alpha's computational engine.
 
 # Images 
-![image](https://github.com/MartianInGreen/BeeBrain/assets/24570687/225a7aab-00c8-439f-b224-7c57e730b1fd)
+![image](https://github.com/MartianInGreen/BeeBrain/assets/24570687/5aed7464-7af3-48a1-91df-2660e09eaca0)
+
