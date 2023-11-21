@@ -1,0 +1,12 @@
+numpy
+pandas
+matplotlib
+tensorflow
+scipy
+bs4
+pypdf2
+opencv
+yfinacne
+scikit-learn
+requests
+scipy

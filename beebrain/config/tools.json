@@ -32,7 +32,28 @@
             "name": "Jupyter Notebook",
             "description": "Runs python code in a networked jupyter notebook.",
             "prompt": "## @python\nWhen you send a message containing Python code to @python, it will be executed in a stateful Jupyter notebook environment. Python will respond with the output of the execution or time out after 60.0 seconds. The drive at '/mnt/data' can be used to save and persist user files. This session is network enabled.\n",
-            "function": []
+            "function": [{
+                "type": "function",
+                "function": {
+                    "name": "python",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["code", "install_package"],
+                                "description": "Select if you want to run code or install a package."
+                            }, 
+                            "code": {
+                                "type": "string",
+                                "description": "The code to run. (or the name of the package to install)"
+                            }
+                        },
+                        "required": ["type", "code"]
+                    }
+                }
+            }],
+            "packages": ["numpy", "pandas", "matplotlib", "tensorflow", "scipy", "bs4", "pypdf2", "opencv", "yfinacne", "scikit-learn", "requests", "SymPy", "nltk", "flask", "fastapi", "SQLAlchemy", "asyncio", "markdown2", "geopy", "statsmodel"]
         }
     ],
     "image": [
@@ -88,7 +109,27 @@
             "name": "Audio Generation",
             "description": "Generate voice and sound effects",
             "prompt": "## @voice\nYou have access to the @voice tool. When you input text it will return a link to an audio file with a realistic voice. \n\n## @sound_effects\nYou have access to the @sound_effects tool. You can describe a sound effect and this tool will do it's best to produce that sound effect.\n",
-            "function": []
+            "function": [{
+                "type": "function",
+                "function": {
+                    "name": "generate_audio",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "prompt": {
+                                "type": "string",
+                                "description": "The prompt (for sound effects) or text (for text-to-speech) to use for audio generation."
+                            },
+                            "audio_type": {
+                                "type": "string",
+                                "enum": ["voice", "sound_effect"],
+                                "description": "The type of audio to generate."
+                            }
+                        },
+                        "required": ["prompt", "number_of_images", "image_aspect"]
+                    }
+                }    
+            }]
         }
     ]
 }

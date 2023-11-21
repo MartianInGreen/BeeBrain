@@ -45,19 +45,11 @@ def parse_tools(tools):
     function_list = []
     for tool in tools:
         try: 
-            function_list.append(file_tools[tool][0]["function"])
+            function_list.append(file_tools[tool][0]["function"][0])
         except:
             print("Tool not found: " + tool)
 
-    function_list = function_list[0]
-    print(function_list)
-
     return function_list
-
-
-### ---------------------------------------------------------------------
-### Main
-### ---------------------------------------------------------------------
 
 def get_llms():
     # Read the config/models.json file 
@@ -67,6 +59,81 @@ def get_llms():
     # Get the chat models
     chat_models = models["chat"]
     return chat_models
+
+### ---------------------------------------------------------------------
+### Main
+### ---------------------------------------------------------------------
+
+def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None):
+        # -------------------------------------
+        # Getting LLM models
+        # -------------------------------------
+        print(prompt_list)
+        print("model: " + str(model))
+        system_prompt = prompt_list[0]['content']
+        system_prompt = system_prompt.replace("{{llm_name}}", model)
+        system_prompt = system_prompt.replace("{{current_date}}", datetime.datetime.now().strftime('%Y-%m-%d %H:%M') + " " + time.strftime('UTC%z'))
+
+        # Get the model
+        try: 
+            model = llm_model_list[model][0]
+        except:
+            print("Model not found: Defaulting to GPT-3.5 Turbo")
+            model = llm_model_list["gpt-3.5-turbo"][0]
+
+        system_prompt = system_prompt.replace("{{knowledge_cutoff}}", str(model["knowledge_cutoff"]))
+
+        model_max_tokens = model["context_size"]
+        model_max_new_tokens = model["max_output_length"]
+        
+        # Get the API key
+        provider = model["provider"]
+        provider = provider.split("/")
+        provider = provider[0]
+        api_keys = get_api_keys()
+
+        if provider == "openai":
+            llm_api_key = api_keys["openai"]
+            llm_base_url = "https://api.openai.com/v1"
+            model_name = model["model_name"]
+        elif provider == "openrouter":
+            llm_api_key = api_keys["openrouter"]
+            llm_base_url = "https://openrouter.ai/api/v1"
+            provider = "openrouter"
+            
+            model_name = model["provider"]
+            model_name = model_name.replace("openrouter/", "")
+
+        if provider == "openrouter":
+            extra_headers = {
+                "HTTP-Referer": "http://localhost",
+                "X-Title": "Bee Brain"
+            }
+        else:
+            extra_headers = {}
+
+        # -------------------------------------
+        # Setting up tools
+        # -------------------------------------
+        if tools != None:
+            # Get the tool prompts
+            tool_functions = parse_tools(tools)
+            #tools = tools[0]
+
+            tool_prompts = ""
+            for tool in tools: 
+                tool_prompts = tool_prompts + get_tools()[tool][0]["prompt"] + "\n\n"
+            
+            system_prompt = system_prompt.replace("{{tools}}", "# Tools\n\n" + tool_prompts)
+        else:
+            tool_functions = None
+        
+        # -------------------------------------
+        # Update the prompt list
+        # -------------------------------------
+        prompt_list[0]['content'] = system_prompt
+
+        return prompt_list, tool_functions, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers
 
 def call_llm(model: str, prompt_list, temperature: float, tools, settings):
     chat_models = get_llms()

@@ -99,7 +99,7 @@ def quick_search(query: str, country="DE", search_lang="en", test=False, count=5
 
             # increment i
             i += 1
-        
+
         return results
 
     results = decode_data(data)
