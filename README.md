@@ -48,3 +48,6 @@ To utilize BeeBrain effectively, users need to obtain API keys from various serv
 - **stabilityai**: Image processing.
 - **brave-search**: Web search functionality.
 - **wolfram-alpha**: Access to Wolfram Alpha's computational engine.
+
+# Images 
+![image](https://github.com/MartianInGreen/BeeBrain/assets/24570687/225a7aab-00c8-439f-b224-7c57e730b1fd)
