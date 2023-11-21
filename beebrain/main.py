@@ -129,8 +129,9 @@ def setup_chat_history(agent: str):
 class ChatApp(ft.UserControl):
     def __init__(self):
         self.agent_dropdown = ft.Dropdown(width=200, options=[], label="Agent")
-        self.past_chats_list = ft.ListView()
-        self.llm_model_dropdown = ft.Dropdown(width=200, options=[], label="LLM Model", value="GPT 4 Turbo")
+        self.reset_button = ft.TextButton(width=200, icon=ft.icons.AUTORENEW, text="NEW CHAT", on_click=lambda _: self.clear_chat())
+        self.past_chats_list = ft.ListView(expand=True)
+        self.llm_model_dropdown = ft.Dropdown(width=200, options=[], label="LLM Model")
         self.tools_list = ft.Column(controls=[], width=200)
         self.settings_list = ft.ListView()
 
@@ -160,7 +161,15 @@ class ChatApp(ft.UserControl):
         self.SETTING_image_model = "sd-xl"
         self.SETTING_image_quality = "medium"
 
+    def clear_chat(self):
+        self.chat_history = None
+        self.chat.controls = []
+        self.chat.update()
+
     def build_ui(self, page):
+        # TEST RESET VALUE
+        self.chat_history = None
+
         # Initialize agent dropdown
         self.page = page
         agents = common.get_agents()
@@ -198,7 +207,7 @@ class ChatApp(ft.UserControl):
         page.overlay.append(self.file_selector)
         
         left = ft.Container(
-            content=ft.Column([self.agent_dropdown, self.past_chats_list]),
+            content=ft.Column([self.agent_dropdown, self.past_chats_list, self.reset_button]),
             width=200, bgcolor=ft.colors.BLACK, margin=ft.margin.all(2)
         )
 
@@ -531,6 +540,10 @@ class ChatApp(ft.UserControl):
                 elif content.content:
                     message_content = content.content
                     self.add_message_to_chat(message_content, "assistant")
+                    prompt_list.append({
+                        "role": "assistant",
+                        "content": message_content
+                    })
                     i += 1 
                     break
 
