@@ -51,4 +51,5 @@ To utilize BeeBrain effectively, users need to obtain API keys from various serv
 
 # Images 
 ![image](https://github.com/MartianInGreen/BeeBrain/assets/24570687/5aed7464-7af3-48a1-91df-2660e09eaca0)
+![image](https://github.com/MartianInGreen/BeeBrain/assets/24570687/7cb6c696-b919-47b7-b862-49b5eea77c48)
 
