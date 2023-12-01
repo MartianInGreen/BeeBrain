@@ -60,6 +60,15 @@ def get_llms():
     chat_models = models["chat"]
     return chat_models
 
+def get_visual_llms():
+    # Read the config/models.json file 
+    with open("beebrain/config/models.json", "r") as file:
+        models = json.load(file)
+    
+    # Get the chat models
+    visual_models = models["vision"]
+    return visual_models
+
 ### ---------------------------------------------------------------------
 ### Main
 ### ---------------------------------------------------------------------

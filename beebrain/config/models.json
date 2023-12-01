@@ -9,7 +9,7 @@
               "context_size": 128000,
               "max_output_length": 4095,
               "knowledge_cutoff": "2023-04",
-              "vison": true,
+              "vison": false,
               "allow_function_call": true,
               "provider": "openai",
               "input_price": 0.01,
@@ -19,7 +19,7 @@
       ],
       "gpt-3.5-turbo-1106": [
           {
-                "system_name": "gpt-3.5-turbo",
+              "system_name": "gpt-3.5-turbo",
               "model_name": "gpt-3.5-turbo-1106",
               "human_name": "GPT 3.5 Turbo",
               "description": "OpenAI's latest model and the best model currently availible.",
@@ -35,7 +35,7 @@
       ],
       "nous-hermes-llama2-70b": [
           {
-                "system_name": "nous-hermes-llama2-70b",
+              "system_name": "nous-hermes-llama2-70b",
               "model_name": "nous-hermes-llama2-70b",
               "human_name": "Nous Hermes 70B",
               "description": "A model based on llama 2 and further finetuned by Nous.",
@@ -97,6 +97,39 @@
               "completion_price": 0
           }
       ]
+  },
+  "vision": {
+    "gpt-4-vision-preview": [
+        {
+            "allow_function_call": false,
+            "completion_price": 0.03,
+            "context_size": 128000,
+            "description": "OpenAI's latest model and the best model currently availible.",
+            "human_name": "GPT 4 Turbo Vison",
+            "input_price": 0.01,
+            "knowledge_cutoff": "2023-04",
+            "max_image_price": 0.00765,
+            "max_output_length": 4095,
+            "model_name": "gpt-4-vision-preview",
+            "provider": "openai",
+            "system_name": "gpt-4-vision-preview"
+        }
+    ],
+    "llava-13b": [
+        {
+            "allow_function_call": true,
+            "completion_price": 0.002,
+            "context_size": 16385,
+            "description": "A Vison model based on LLama 2 13B.",
+            "human_name": "Llava 13B (Vison)",
+            "input_price": 0.001,
+            "knowledge_cutoff": "2023-04",
+            "max_output_length": 4095,
+            "model_name": "llava-13b",
+            "provider": "replicate/yorickvp/llava-13b:e272157381e2a3bf12df3a8edd1f38d1dbd736bbb7437277c8b34175f8fce358",
+            "system_name": "yorickvp/llava-13b:e272157381e2a3bf12df3a8edd1f38d1dbd736bbb7437277c8b34175f8fce358"
+        }
+    ]
   },
   "text-to-image": {
       "dalle-3-hd": [
@@ -161,7 +194,7 @@
               }
           }
       ],
-      "sd-xl": [
+      "sd-xl-stability": [
           {
               "model_name": "sd-xl",
               "human_name": "SD XL 1.6",
@@ -191,7 +224,69 @@
                   ]
               }
           }
-      ]
+      ],
+      "sd-xl-replicate": [
+        {
+            "model_name": "sd-xl",
+            "human_name": "SD XL 1.6",
+            "description": "The best stable diffusion from Stability AI.",
+            "provider": "replicate",
+            "image_types": {
+                "square": [
+                    {
+                        "width": 1024,
+                        "height": 1024,
+                        "price": 0.004
+                    }
+                ],
+                "portrait": [
+                    {
+                        "width": 768,
+                        "height": 1344,
+                        "price": 0.004
+                    }
+                ],
+                "landscape": [
+                    {
+                        "width": 1344,
+                        "height": 768,
+                        "price": 0.004
+                    }
+                ]
+            }
+        }
+    ], 
+    "sd-xl-turbo": [
+        {
+            "model_name": "sd-xl-turbo",
+            "human_name": "SD XL Turbo",
+            "description": "The fastest stable diffusion from Stability AI.",
+            "provider": "replicate",
+            "image_types": {
+                "square": [
+                    {
+                        "width": 1024,
+                        "height": 1024,
+                        "price": 0.004
+                    }
+                ],
+                "portrait": [
+                    {
+                        "width": 768,
+                        "height": 1344,
+                        "price": 0.004
+                    }
+                ],
+                "landscape": [
+                    {
+                        "width": 1344,
+                        "height": 768,
+                        "price": 0.004
+                    }
+                ]
+            }
+        }
+    ]
   },
   "image-upscale": {
       "esrgan-v1-x2plus": [

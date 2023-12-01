@@ -4,13 +4,14 @@
 import flet as ft
 import openai
 from openai import OpenAI
+from e2b import Sandbox, CodeInterpreter
 
 import psutil, platform
 
 import datetime, time
 
 from tools import llm, common, image
-import json, os
+import json, os, base64
 
 from tools.browser import quick_search, copilot, scrape_url
 from tools.image import image_gen
@@ -18,7 +19,6 @@ from tools.image import image_gen
 ### ----------------------------------------------------------
 ### Settings
 ### ----------------------------------------------------------
-settings = {"image": [{"model": "sd-xl", "quality": "medium"}], "search": [{"depth": 5}]}
 
 ### ----------------------------------------------------------
 ### functions
@@ -46,6 +46,17 @@ def parse_llm_names():
         llm_names.append({"label": human_name, "value": system_name})
 
     return llm_names
+
+def parse_vision_names():
+    llms = llm.get_visual_llms()
+
+    vision_llms = []
+    for model in llms:
+        human_name = llms[model][0]["human_name"]
+        system_name = llms[model][0]["model_name"]
+        vision_llms.append({"label": human_name, "value": system_name})
+
+    return vision_llms
 
 def get_llms():
     with open("beebrain/config/models.json", "r") as file:
@@ -86,41 +97,9 @@ def parse_tools():
 
     return tool_names
 
-def setup_chat_history(agent: str):
-    agents = common.get_agents()
-    tools = common.get_tools()
-
-    #read the default.md file from templates
-    with open("beebrain/config/templates/default.md", "r") as file:
-        system_prompt = file.read()
-    
-    try: 
-        tool_prompts = []
-        agent = agents[agent]
-        for tool in agent["tools"]:
-            tool_prompts.append(tools[tool][0]["prompt"])
-        
-        tool_prompts = "\n".join(tool_prompts)
-    except:
-        tool_prompts = ""
-
-    # System settings
-    system_prompt = system_prompt.replace("{{mission}}", "# Mission\n" + agent["mission"])
-
-    # User info
-    uname = platform.uname()
-    device = "OS: " + uname.system + " " + uname.release + " & " + uname.machine
-
-    system_prompt = system_prompt.replace("{{user_instructions}}", "")
-    system_prompt = system_prompt.replace("{{location}}", "Germany, Rheinland-Pfalz, Wachenheim an der Weinstraße")
-    system_prompt = system_prompt.replace("{{device}}", device)
-
-    chat_history = [{
-        "role": "system",
-        "content": system_prompt
-    }]
-
-    return chat_history
+def encode_image(image_path):
+  with open(image_path, "rb") as image_file:
+    return base64.b64encode(image_file.read()).decode('utf-8')
 
 ### ----------------------------------------------------------
 ### Main
@@ -128,10 +107,11 @@ def setup_chat_history(agent: str):
 
 class ChatApp(ft.UserControl):
     def __init__(self):
-        self.agent_dropdown = ft.Dropdown(width=200, options=[], label="Agent")
+        self.mission_dropdown = ft.Dropdown(width=200, options=[], label="Mission")
         self.reset_button = ft.TextButton(width=200, icon=ft.icons.AUTORENEW, text="NEW CHAT", on_click=lambda _: self.clear_chat())
         self.past_chats_list = ft.ListView(expand=True)
         self.llm_model_dropdown = ft.Dropdown(width=200, options=[], label="LLM Model")
+        self.vision_model_dropdown = ft.Dropdown(width=200, options=[], label="Vision Model")
         self.tools_list = ft.Column(controls=[], width=200)
         self.settings_list = ft.ListView()
 
@@ -146,6 +126,7 @@ class ChatApp(ft.UserControl):
 
         self.file_selector = ft.FilePicker()
         self.file_selector_button = ft.IconButton(icon=ft.icons.ATTACH_FILE_ROUNDED, on_click=lambda _: self.file_selector.pick_files(allow_multiple=True, dialog_title="Select files to upload"))
+        self.record_audio_button = ft.IconButton(icon=ft.icons.MIC_NONE_ROUNDED)
 
         self.center_width = 800
 
@@ -158,7 +139,7 @@ class ChatApp(ft.UserControl):
 
         self.SETTING_search_depth = 5
 
-        self.SETTING_image_model = "sd-xl"
+        self.SETTING_image_model = "sd-xl-replicate"
         self.SETTING_image_quality = "medium"
 
     def clear_chat(self):
@@ -169,28 +150,29 @@ class ChatApp(ft.UserControl):
     def build_ui(self, page):
         # TEST RESET VALUE
         self.chat_history = None
-
-        # Initialize agent dropdown
         self.page = page
-        agents = common.get_agents()
-        for i, agent in enumerate(agents):
-            if i == 0:
-                self.agent_dropdown.value = agents[agent]["name"]
-            self.agent_dropdown.options.append(ft.dropdown.Option(text=agents[agent]["name"]))
 
         # Initialize LLM model dropdown
         llm_names = parse_llm_names()
-        set_default = False 
         for model in llm_names:
             self.llm_model_dropdown.options.append(ft.dropdown.Option(text=model["value"]))
 
         # This is a bug, when adding a key to a dropdown option, the set lable will not be shown but is set
         self.llm_model_dropdown.value = llm_names[1]["value"]
 
+        # Initialize vision model dropdown:
+        vision_names = parse_vision_names()
+        for model in vision_names:
+            self.vision_model_dropdown.options.append(ft.dropdown.Option(text=model["value"]))
+        
+        self.vision_model_dropdown.value = vision_names[0]["value"]
+
         # Initialize image model dropdown:
-        self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl"))
+        self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl-stability"))
+        self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl-replicate"))
+        self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl-turbo"))
         self.image_model_dropdown.options.append(ft.dropdown.Option("dalle-3"))
-        self.image_model_dropdown.value = "sd-xl"
+        self.image_model_dropdown.value = "sd-xl-replicate"
 
         # Initialize tools list
         all_tools = parse_tools()
@@ -207,7 +189,7 @@ class ChatApp(ft.UserControl):
         page.overlay.append(self.file_selector)
         
         left = ft.Container(
-            content=ft.Column([self.agent_dropdown, self.past_chats_list, self.reset_button]),
+            content=ft.Column([self.mission_dropdown, self.past_chats_list, self.reset_button]),
             width=200, bgcolor=ft.colors.BLACK, margin=ft.margin.all(2)
         )
 
@@ -215,14 +197,14 @@ class ChatApp(ft.UserControl):
             content=ft.Column([
                 ft.Container(content=self.chat, expand=True),
                 ft.Column([
-                    ft.Row([self.file_selector_button, self.text_input, self.send_button], alignment="end")
+                    ft.Row([self.file_selector_button, self.record_audio_button, self.text_input, self.send_button], alignment="end")
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, width=self.center_width)
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             expand=True, padding=ft.padding.symmetric(vertical=20),
         )
 
         right = ft.Container(
-            content=ft.Column([self.llm_model_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list], width=self.center_width),
+            content=ft.Column([self.llm_model_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list], width=self.center_width),
             width=200, bgcolor=ft.colors.BLACK, margin=ft.margin.all(2)
         )
 
@@ -264,6 +246,8 @@ class ChatApp(ft.UserControl):
             elif tool_name == "image":
                 images = tool_info["results"]
 
+                print("Break")
+                print(images)
                 num_images = len(images)
 
                 page_images = ft.Row(expand=False, wrap=True, width=self.center_width)
@@ -272,7 +256,18 @@ class ChatApp(ft.UserControl):
                     page_images.controls.append(ft.Image(src=image, width=self.center_width/num_images))
 
                 message = f"**Prompt**: '{tool_info['prompt']}'\n\n" + f"**Number of images**: {tool_info['number_of_images']}\n\n" + f"**Image aspect**: {tool_info['image_aspect']}\n\n" + f"**Image model**: {tool_info['image_model']}\n\n" + f"**Image quality**: {tool_info['image_quality']}\n\n"
-                
+            elif tool_name == "python":
+                code = tool_info["code"]
+                stdout = tool_info["stdout"]
+                stderr = tool_info["stderr"]
+                artifacts = tool_info["artifacts"]
+
+                code_message = f"**Code**: \n ```python\n{code}\n```"
+                message = f"**Stdout**: {stdout}\n\n" + f"**Stderr**: {stderr}\n\n"
+                code_artifacts = ft.Row(expand=False, wrap=True, width=self.center_width)
+
+                for artefact in artifacts:
+                    code_artifacts.controls.append(ft.Image(src=artefact, width=self.center_width/len(artifacts)))
 
         message_header = ft.Container(
             content=ft.Row([
@@ -285,7 +280,7 @@ class ChatApp(ft.UserControl):
         # Create the Markdown component for the message
         message_body = ft.Markdown(
             value=message,  # Use the input text here
-            selectable=False,
+            selectable=True,
             code_theme="atom-one-dark",
             code_style=ft.TextStyle(font_family="Roboto Mono"),
             width=self.center_width,
@@ -307,6 +302,26 @@ class ChatApp(ft.UserControl):
                     message_header,
                     message_body,
                     page_images
+                ]),
+                width=self.center_width
+            )
+        if tool_name and tool_info != None and tool_name == "python":
+            code_message = ft.Markdown(
+                value=code_message,  # Use the input text here
+                selectable=True,
+                code_theme="atom-one-dark",
+                extension_set="gitHubWeb",
+                code_style=ft.TextStyle(font_family="Roboto Mono"),
+                width=self.center_width,
+                on_tap_link=lambda e: self.page.launch_url(e.data),
+            )
+
+            message_container = ft.Container(
+                content=ft.Column([
+                    message_header,
+                    code_message,
+                    code_artifacts,
+                    message_body,
                 ]),
                 width=self.center_width
             )
@@ -363,8 +378,113 @@ class ChatApp(ft.UserControl):
         return str(results)
         #return "./out/txt2_img_9125702721.png"
 
-    def python(code: str):
-        pass
+    def code_interpreter(self, code: str):
+        print("Code: " + code)
+        sandbox = CodeInterpreter(api_key=common.get_api_keys()["e2b"])
+        
+        sandbox.install_system_packages('sympy')
+
+        stdout, stderr, artifacts = sandbox.run_python(code)
+
+        print("Returned Output: " + str(stdout))
+        print("Returned Error: " + str(stderr))
+        print("Returned Artifacts: " + str(artifacts))
+
+        artefact_paths = []
+        if artifacts:
+            for artefact in artifacts:
+                # save the chart to a file
+                # generate random uuid to string
+                uuid = str(base64.urlsafe_b64encode(os.urandom(15)), 'utf-8')
+
+                with open("out/" + str(uuid) + ".png", 'wb') as f:
+                    downloaded_chart = artefact.download()
+
+                    # convert png bytes to a file
+                    f.write(downloaded_chart)
+                    artefact_paths.append("out/" + str(uuid) + ".png")
+
+        self.add_message_to_chat("Used tool: " + "python", "tool", "python", {"code": code, "stdout": stdout, "stderr": stderr, "artifacts": artefact_paths})
+
+        sandbox.close()
+
+        return str(stdout)
+
+    def vision(self, image, question: str = "Describe the image in as much detail as possible."):
+        # Get Vision models
+        vision_models = llm.get_visual_llms()
+
+        # user selected model 
+        #vision_model = self.vision_model_dropdown.value
+        vision_model = "gpt-4-vision-preview"
+
+        # Check if the model is available
+        if vision_model not in vision_models:
+            vision_model = "gpt-4-vision-preview"
+
+        print("Using vision model: " + vision_model)
+        print("Using image: " + image)
+
+        # Get system message
+        with open("beebrain/config/templates/vision.md", "r") as file:
+            system_prompt = file.read()
+            system_prompt = system_prompt.replace("{{llm_name}}", vision_model)
+            system_prompt = system_prompt.replace("{{knowledge_cutoff}}", "2023-04")
+            system_prompt = system_prompt.replace("{{current_date}}", datetime.datetime.now().strftime('%Y-%m-%d %H:%M') + " " + time.strftime('UTC%z'))
+
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt
+            }, 
+            {
+                "role": "user",
+                "content": [
+                {
+                    "type": "text",
+                    "text": question
+                }
+                ]
+            }
+        ]
+
+        # Encode the image
+        image_data = None
+
+        if image.startswith("sandbox://"):
+            image_path = image.replace("sandbox://", "")
+
+            with open(image_path, "rb") as image_file:
+                image_data = base64.b64encode(image_file.read()).decode('utf-8')
+                messages[1]["content"].append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_data}"
+                    }
+                })
+
+        # Call the API
+        client = OpenAI(api_key=common.get_api_keys()["openai"])
+
+        try:
+            completion = client.chat.completions.create(
+                        model="gpt-4-vision-preview",
+                        messages=messages,
+                        stream=False,
+                        max_tokens=2048,
+                        temperature=0.2,
+                        timeout=60,
+                    )
+            
+            # Get the message content from the response
+            content = completion.choices[0].message.content
+        except Exception as e:
+            print("Error calling API: " + str(e))
+            return "Error calling API, please try again later..."
+
+        self.add_message_to_chat(content, "tool", "vision")
+
+        return content
 
     def call_llm(self, prompt_list, model_name, tools, temperature: int, max_new_tokens: int, llm_api_key: str, llm_base_url: str, extra_headers):
         client = OpenAI(api_key=llm_api_key, base_url=llm_base_url)
@@ -401,7 +521,8 @@ class ChatApp(ft.UserControl):
         available_functions = {
             "browser": self.browser,
             "generate_image": self.generate_image,
-            "python": self.python,
+            "python": self.code_interpreter,
+            "vision": self.vision,
         }
 
         for tool_call in tool_calls:
@@ -411,9 +532,11 @@ class ChatApp(ft.UserControl):
                 return None
 
             function_to_call = available_functions[function_name]
+            print(f"Calling function {function_name}...")
 
             try:
                 function_args = json.loads(tool_call.function.arguments)
+                print(function_args)
                 function_response = function_to_call(**function_args)
             except Exception as e:
                 print(f"Error in function call {function_name}: {e}")
@@ -535,6 +658,7 @@ class ChatApp(ft.UserControl):
                         prompt_list.append(tool_call_dict)
                 
                     # Call the tools
+                    print(tool_calls)
                     prompt_list = self.call_tool(tool_calls, prompt_list)
                     i += 1
                     print("Got Tool response...")
@@ -542,6 +666,7 @@ class ChatApp(ft.UserControl):
                 # Get the message content from the response
                 elif content.content:
                     message_content = content.content
+                    print(message_content)
                     self.add_message_to_chat(message_content, "assistant")
                     prompt_list.append({
                         "role": "assistant",
@@ -569,3 +694,4 @@ if __name__ == "__main__":
     ft.app(target=main)
     #setup_chat_history("default")
     #parse_tools()
+    #print(ChatApp.vision(ChatApp, "sandbox://test.jpg"))
