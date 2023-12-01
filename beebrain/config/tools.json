@@ -29,9 +29,9 @@
     ],
     "python": [
         {
-            "name": "Jupyter Notebook",
-            "description": "Runs python code in a networked jupyter notebook.",
-            "prompt": "## @python\nWhen you send a message containing Python code to @python, it will be executed in a stateful Jupyter notebook environment. Python will respond with the output of the execution or time out after 60.0 seconds. The drive at '/mnt/data' can be used to save and persist user files. This session is network enabled.\n",
+            "name": "Python",
+            "description": "Runs python code in a networked environment..",
+            "prompt": "## @python\nWhen you send a message containing Python to @python, it will be executed using python. Python will respond with the output of the execution or time out after 60.0 seconds. The drive at '/mnt/data' can be used to save and persist user files. This session is network enabled. Always use print() to get the value of variables and expressions, they will not be returned by default!",
             "function": [{
                 "type": "function",
                 "function": {
@@ -39,28 +39,22 @@
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "type": {
-                                "type": "string",
-                                "enum": ["code", "install_package"],
-                                "description": "Select if you want to run code or install a package."
-                            }, 
                             "code": {
                                 "type": "string",
-                                "description": "The code to run. (or the name of the package to install)"
+                                "description": "The pure python code to run in propper JSON formatting and within the code argument."
                             }
                         },
-                        "required": ["type", "code"]
+                        "required": ["code"]
                     }
                 }
-            }],
-            "packages": ["numpy", "pandas", "matplotlib", "tensorflow", "scipy", "bs4", "pypdf2", "opencv", "yfinacne", "scikit-learn", "requests", "SymPy", "nltk", "flask", "fastapi", "SQLAlchemy", "asyncio", "markdown2", "geopy", "statsmodel"]
+            }]
         }
     ],
     "image": [
         {
             "name": "Image Generation",
             "description": "Generate images using DALLE-3 or SD-XL",
-            "prompt": "## @image\nYou have access to the @image tool. This can be used to generate images using stable diffusion models.\n\n**Generation Guide:**\n1. If the description is not in English, translate it.\n2. Only output the tool request, nothing else.\n3. Prompts are best when they contain a description and comma sperated additions. For example 'A cat sitting infront of a fire, photorealistic, good picture' or 'A large group of people standing around a large fire in the forrest, watercolour painting, good picture'. (NEVER USE THE EXAMPLE PROMPTS)\n4. The first part of your prompt should be at least 2 detailed sentenced based on the user description. Do not write more than 4 sentences!\n5. You should add at least 5 comma separated additions and a MAXIMUM of 10.\n6. Do not display the image in any way. The images have already been displayed.\n",
+            "prompt": "## @image\nYou have access to the @image tool. This can be used to generate images using stable diffusion models.\n\n**Generation Guide:**\nNever include the link to the image in your response!\n1. If the description is not in English, translate it.\n2. Only output the tool request, nothing else.\n3. Prompts are best when they contain a description and comma sperated additions. For example 'A cat sitting infront of a fire, photorealistic, good picture' or 'A large group of people standing around a large fire in the forrest, watercolour painting, good picture'. (NEVER USE THE EXAMPLE PROMPTS)\n4. The first part of your prompt should be at least 2 detailed sentenced based on the user description. Do not write more than 4 sentences!\n5. You should add at least 5 comma separated additions and a MAXIMUM of 10.\n6. Do not display the image in any way. The images have already been displayed to the user.\n",
             "function": [{
                 "type": "function",
                 "function": {
@@ -85,6 +79,34 @@
                         "required": ["prompt", "number_of_images", "image_aspect"]
                     }
                 }    
+            }]
+        }
+    ],
+    "vision": [
+        {
+            "name": "Vision",
+            "description": "Access to image description models.",
+            "prompt": "## @vision\n You have acess to the @vision tools. This tool can be used to analyse and ask questions about images.", 
+            "function": [{
+                "type": "function",
+                "function": {
+                    "name": "vision",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "image": {
+                                "type": "string",
+                                "description": "The 'sandbox://in/...' or 'https://...' url of the image to describe."
+                            },
+                            "question": {
+                                "type": "string",
+                                "description": "Specify a question or task to ask about the image (e.g., 'What is the color of the car?'). Is optional.",
+                                "default": "Describe the image in as much detail as possible."
+                            }
+                        },
+                        "required": ["image"]
+                    }
+                }
             }]
         }
     ],
