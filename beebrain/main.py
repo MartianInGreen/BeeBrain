@@ -11,7 +11,7 @@ import psutil, platform
 import datetime, time
 
 from tools import llm, common, image
-import json, os, base64
+import json, os, base64, uuid, re, sys
 
 from tools.browser import quick_search, copilot, scrape_url
 from tools.image import image_gen
@@ -101,6 +101,7 @@ def encode_image(image_path):
   with open(image_path, "rb") as image_file:
     return base64.b64encode(image_file.read()).decode('utf-8')
 
+
 ### ----------------------------------------------------------
 ### Main
 ### ----------------------------------------------------------
@@ -108,7 +109,7 @@ def encode_image(image_path):
 class ChatApp(ft.UserControl):
     def __init__(self):
         self.mission_dropdown = ft.Dropdown(width=200, options=[], label="Mission")
-        self.reset_button = ft.TextButton(width=200, icon=ft.icons.AUTORENEW, text="NEW CHAT", on_click=lambda _: self.clear_chat())
+        self.reset_button = ft.TextButton(width=200, icon=ft.icons.AUTORENEW, text="NEW CHAT", on_click=lambda _: self.clear_chat(add_to_history=True))
         self.past_chats_list = ft.ListView(expand=True)
         self.llm_model_dropdown = ft.Dropdown(width=200, options=[], label="LLM Model")
         self.vision_model_dropdown = ft.Dropdown(width=200, options=[], label="Vision Model")
@@ -124,7 +125,7 @@ class ChatApp(ft.UserControl):
 
         self.search_depth_slider = ft.Slider(min=5, max=20, divisions=3, label="{value}", value=5, on_change=lambda _: setattr(self, 'SETTING_search_depth', self.search_depth_slider.value))
 
-        self.file_selector = ft.FilePicker()
+        self.file_selector = ft.FilePicker(on_result=self.pick_file_result)
         self.file_selector_button = ft.IconButton(icon=ft.icons.ATTACH_FILE_ROUNDED, on_click=lambda _: self.file_selector.pick_files(allow_multiple=True, dialog_title="Select files to upload"))
         self.record_audio_button = ft.IconButton(icon=ft.icons.MIC_NONE_ROUNDED)
 
@@ -142,9 +143,96 @@ class ChatApp(ft.UserControl):
         self.SETTING_image_model = "sd-xl-replicate"
         self.SETTING_image_quality = "medium"
 
-    def clear_chat(self):
-        self.chat_history = None
+        self.chat_id = str(uuid.uuid4())
+
+    def pick_file_result(self, e: ft.FilePickerResultEvent):
+        print(e.files)
+
+        files = []
+        file_names = []
+
+        for file in e.files:
+            file_name = file.name
+            file_path = file.path
+
+            files.append({"name": file_name, "path": file_path})
+            file_names.append(file_name)
+
+        for file in files:
+            file_name = file["name"]
+            file_path = file["path"]
+
+            with open(file_path, "rb") as file:
+                with open("working/" + self.chat_id + "/in/" + file_name, "wb") as out_file:
+                    out_file.write(file.read())
+            
+        self.add_message_to_chat("Uploaded files: " + str(file_names), "tool", "file_upload", {"files": file_names})
+
+    def populate_past_chats(self):
+        # Get all past chats
+        past_chats = os.listdir("working")
+
+        # reverse the list so the newest chats are on top
+        past_chats.reverse()
+
+        # Add the chats to the list
+        for chat in past_chats:
+            with open("working/" + chat + "/chat.json", "r") as file:
+                chat = json.load(file)[0]["content"]
+            short_chat = chat[:21]
+            self.past_chats_list.controls.append(ft.TextButton(text=short_chat, on_click=lambda _: self.load_chat(chat_id=chat)))
+
+        self.page.update()
+
+    def load_chat(self, chat_id: str):
+        self.clear_chat(add_to_history=True)
+        # Get the chat history
+        with open("working/" + chat_id + "/chat.json", "r") as file:
+            chat_history = json.load(file)
+
+        # Get the chat name
+        chat_name = chat_history[0]["content"]
+
+        # Set the chat id
+        self.chat_id = chat_id
+
+        # Clear the chat
         self.chat.controls = []
+
+        # Add the chat name to the chat
+        self.add_message_to_chat("**Chat-ID:** " + chat_name, "system", add_to_history=False)
+
+        # Add the chat history to the chat
+        for message in chat_history[0:]:
+            role = message["role"]
+            content = message["content"]
+
+            if role == "user":
+                self.add_message_to_chat(content, "user", add_to_history=False)
+            elif role == "assistant":
+                self.add_message_to_chat(content, "assistant", add_to_history=False)
+            elif role == "tool":
+                tool_name = message["name"]
+                tool_info = message["content"]
+
+                self.add_message_to_chat(content, "tool", tool_name, tool_info, add_to_history=False)
+            elif role == "system":
+                self.add_message_to_chat(content, "system")
+
+        self.chat.update()
+
+    def clear_chat(self, add_to_history=False):
+        self.chat_history = None
+        self.chat_id = datetime.datetime.now().strftime('%Y-%m-%d%H-%M-%S') + str(uuid.uuid4())
+        self.chat.controls = []
+
+        if not os.path.exists("working"):
+            os.mkdir("working")
+
+        if add_to_history == True: 
+            self.past_chats_list.controls.clear()
+            self.populate_past_chats()
+
         self.chat.update()
 
     def build_ui(self, page):
@@ -210,9 +298,34 @@ class ChatApp(ft.UserControl):
 
         page.add(ft.Row([left, center, right], expand=True))
         page.update()
+        self.clear_chat()
+        self.populate_past_chats()
 
-    def add_message_to_chat(self, message: str, sender: str, tool_name=None, tool_info=None):
+    def add_message_to_chat(self, message: str, sender: str, tool_name=None, tool_info=None, add_to_history=True):
         # Create the message row with avatar and user label
+
+        if add_to_history == True:
+            # check if folder with uuid name exists under working/
+            if not os.path.exists("working/" + self.chat_id):
+                os.mkdir("working/" + self.chat_id)
+                os.mkdir("working/" + self.chat_id + "/out")
+                os.mkdir("working/" + self.chat_id + "/in")
+
+            # initialize chat.json
+            if not os.path.exists("working/" + self.chat_id + "/chat.json"):
+                with open("working/" + self.chat_id + "/chat.json", "w") as file:
+                    json.dump([{"role": "chat_name", "content": f"{self.chat_id}"}], file)
+
+            # Write the message to the chat history file 
+            with open("working/" + self.chat_id + "/chat.json", "r") as file:
+                file_chat = json.load(file)
+                if tool_name == None and tool_info == None:
+                    file_chat.append({"role": sender, "content": message})
+                elif tool_name != None and tool_info != None:
+                    file_chat.append({"role": sender, "content": message, "tool_name": tool_name, "tool_info": tool_info})
+            with open("working/" + self.chat_id + "/chat.json", "w") as file:
+                json.dump(file_chat, file)
+            
 
         content = ""
         if sender == "user":
@@ -246,8 +359,6 @@ class ChatApp(ft.UserControl):
             elif tool_name == "image":
                 images = tool_info["results"]
 
-                print("Break")
-                print(images)
                 num_images = len(images)
 
                 page_images = ft.Row(expand=False, wrap=True, width=self.center_width)
@@ -268,6 +379,14 @@ class ChatApp(ft.UserControl):
 
                 for artefact in artifacts:
                     code_artifacts.controls.append(ft.Image(src=artefact, width=self.center_width/len(artifacts)))
+            elif tool_name == "file_upload": 
+                files = tool_info["files"]
+
+                files = ", ".join(files)
+
+                message = f"**Files**: {files}\n\n"
+                name = "File Upload"
+
 
         message_header = ft.Container(
             content=ft.Row([
@@ -283,6 +402,7 @@ class ChatApp(ft.UserControl):
             selectable=True,
             code_theme="atom-one-dark",
             code_style=ft.TextStyle(font_family="Roboto Mono"),
+            extension_set="gitHubWeb",
             width=self.center_width,
             on_tap_link=lambda e: self.page.launch_url(e.data),
         )
@@ -373,7 +493,7 @@ class ChatApp(ft.UserControl):
         return results
 
     def generate_image(self, prompt: str, number_of_images: int, image_aspect: str):
-        results = image_gen(self.SETTING_image_model, prompt, number_of_images, image_aspect, self.SETTING_image_quality)
+        results = image_gen(self.SETTING_image_model, prompt, number_of_images, image_aspect, self.SETTING_image_quality, self.chat_id)
         self.add_message_to_chat("Used tool: " + "image", "tool", "image", {"prompt": prompt, "number_of_images": number_of_images, "image_aspect": image_aspect, "image_model": self.SETTING_image_model, "image_quality": self.SETTING_image_quality, "results": results})
         return str(results)
         #return "./out/txt2_img_9125702721.png"
@@ -381,10 +501,12 @@ class ChatApp(ft.UserControl):
     def code_interpreter(self, code: str):
         print("Code: " + code)
         sandbox = CodeInterpreter(api_key=common.get_api_keys()["e2b"])
-        
-        sandbox.install_system_packages('sympy')
 
-        stdout, stderr, artifacts = sandbox.run_python(code)
+        try: 
+            stdout, stderr, artifacts = sandbox.run_python(code)
+        except Exception as e:
+            print("Error running python code: " + str(e))
+            return "Error running python code, please try again later..."
 
         print("Returned Output: " + str(stdout))
         print("Returned Error: " + str(stderr))
@@ -449,9 +571,8 @@ class ChatApp(ft.UserControl):
         ]
 
         # Encode the image
-        image_data = None
-
         if image.startswith("sandbox://"):
+            image_data = None
             image_path = image.replace("sandbox://", "")
 
             with open(image_path, "rb") as image_file:
@@ -462,6 +583,13 @@ class ChatApp(ft.UserControl):
                         "url": f"data:image/jpeg;base64,{image_data}"
                     }
                 })
+        elif image.startswith("http"):
+            messages[1]["content"].append({
+                "type": "image_url",
+                "image_url": {
+                    "url": image
+                }
+            })
 
         # Call the API
         client = OpenAI(api_key=common.get_api_keys()["openai"])
@@ -627,7 +755,7 @@ class ChatApp(ft.UserControl):
 
             if response == None:
                 self.add_message_to_chat("Error while calling LLM...", "system")
-                i += 1 
+                break
             else:
                 content = response.choices[0].message
                 tool_calls = content.tool_calls
@@ -667,6 +795,11 @@ class ChatApp(ft.UserControl):
                 elif content.content:
                     message_content = content.content
                     print(message_content)
+
+                    # replace this regex !\[.*\]\((sandbox)(.*)\) with nothing
+
+                    message_content = re.sub(r'!\[.*\]\((sandbox)(.*)\)', '', message_content)
+
                     self.add_message_to_chat(message_content, "assistant")
                     prompt_list.append({
                         "role": "assistant",

@@ -3,7 +3,7 @@ from openai import OpenAI
 import openai
 import replicate
 
-import os, json, requests, base64
+import os, json, requests, base64, uuid 
 
 import common
 
@@ -27,7 +27,7 @@ def get_models():
     return image_models
 
         
-def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="square", quality="normal"):
+def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="square", quality="normal", chat_id = None):
     quality = quality.lower()
     # SD-XL
     if model == "sd-xl-stability" or model == "sd-xl-replicate" or model == "sd-xl-turbo":
@@ -92,15 +92,12 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
 
             data = response.json()
 
-            # make sure the out directory exists
-            if not os.path.exists("./out"):
-                os.makedirs("./out")
 
             paths = []
             for i, image in enumerate(data["artifacts"]):
-                with open(f'./out/txt2img_{image["seed"]}.png', "wb") as f:
+                with open(f'./working/{chat_id}/out/txt2img_{image["seed"]}.png', "wb") as f:
                     f.write(base64.b64decode(image["base64"]))
-                    paths.append(f'./out/txt2img_{image["seed"]}.png')
+                    paths.append(f'working/{chat_id}/out/txt2img_{image["seed"]}.png')
             
             return paths
         elif model == "sd-xl-replicate":
@@ -117,7 +114,22 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
                 }
             )
 
-            return output 
+            # Download images and save them to working/{chat_id}/out
+            image_locations = []
+            for image in output:
+                print(image)
+                image_uuid = str(uuid.uuid4())
+
+                # Download images and save them to working/{chat_id}/out
+                response = requests.get(image)
+
+                with open(f'./working/{chat_id}/out/sdxl_{image_uuid}.png', 'wb') as f:
+                    f.write(response.content)
+                image_locations.append(f'working/{chat_id}/out/sdxl_{image_uuid}.png')
+
+            print(image_locations)
+
+            return image_locations 
         elif model == "sd-xl-turbo":
             output = replicate.run(
                 "fofr/sdxl-turbo:6244ebc4d96ffcc48fa1270d22a1f014addf79c41732fe205fb1ff638c409267", 
@@ -131,7 +143,15 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
                 }
             )
             
-            return output
+            image_locations = []
+            for image in output:
+                image_uuid = str(uuid.uuid4())
+                response = requests.get(image)
+                with open(f'./working/{chat_id}/out/sdxl_{image_uuid}.png', 'wb') as f:
+                    f.write(response.content)
+                image_locations.append(f'working/{chat_id}/out/sdxl_{image_uuid}.png')
+
+            return image_locations
 
 
     # ----------------------------------------------------------------------------------------------
@@ -170,7 +190,16 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
         for image in response.data:
             image_urls.append(image.url)
 
-        return image_urls
+        image_locations = []
+        # Download images and save them to working/{chat_id}/out
+        for url in enumerate(image_urls):
+            response = requests.get(url)
+            image_uuid = str(uuid.uuid4())
+            with open(f'./working/{chat_id}/out/dalle3_{image_uuid}.png', 'wb') as f:
+                f.write(response.content)
+            image_locations.append(f'working/{chat_id}/out/dalle3_{image_uuid}.png')
+
+        return image_locations
     
 if __name__ == "__main__":
     print(image_gen("sd-xl-turbo", "A christmas tree in a living room", 1, "square", "normal"))
