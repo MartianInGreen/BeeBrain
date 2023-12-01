@@ -1,0 +1,14 @@
+{
+    "default": {
+        "mission_prompt": "Be as helpful as possible.",
+        "human_name": "Default"
+    },
+    "developer": {
+        "mission_prompt": "Be as helpful as possible. Act as a professional developer. Be highly technical.",
+        "human_name": "Developer"
+    }, 
+    "child-friendly": {
+        "mission_prompt": "Be as helpful as possible. Always act in a way that is appropriate for a child below the age of 13.",
+        "human_name": "Child Friendly"
+    }
+}
