@@ -1,6 +1,7 @@
 ## ai libraries
 from openai import OpenAI
 import openai
+import replicate
 
 import os, json, requests, base64
 
@@ -11,6 +12,7 @@ import common
 ### ----------------------------------------------------------------------
 openai.api_key = common.get_api_keys()["openai"]
 stability_api_key = common.get_api_keys()["stabilityai"]
+os.environ["REPLICATE_API_TOKEN"] = common.get_api_keys()["replicate"]
 
 ### ----------------------------------------------------------------------
 ### functions
@@ -28,8 +30,8 @@ def get_models():
 def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="square", quality="normal"):
     quality = quality.lower()
     # SD-XL
-    if model == "sd-xl":
-        url = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image"
+    if model == "sd-xl-stability" or model == "sd-xl-replicate" or model == "sd-xl-turbo":
+        negative_prompt = "ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers"
 
         if quality == "low":
             interferance_steps = 20
@@ -57,48 +59,79 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
         elif number_of_images < 1:
             number_of_images = 1
 
-        body = {
-            "steps": interferance_steps,
-            "width": image_width,
-            "height": image_height,
-            "cfg_scale": 5,
-            "samples": number_of_images,
-            "text_prompts": [
-                {
-                "text": image_prompt,
-                "weight": 1
+        if model == "sd-xl-stability":
+            url = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image"
+            body = {
+                "steps": interferance_steps,
+                "width": image_width,
+                "height": image_height,
+                "cfg_scale": 5,
+                "samples": number_of_images,
+                "text_prompts": [
+                    {
+                    "text": image_prompt,
+                    "weight": 1
+                    }
+                ],
+            }
+
+            headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + stability_api_key,
+            }
+
+            response = requests.post(
+                url,
+                headers=headers,
+                json=body,
+            )
+
+            if response.status_code != 200:
+                raise Exception("Non-200 response: " + str(response.text))
+
+            data = response.json()
+
+            # make sure the out directory exists
+            if not os.path.exists("./out"):
+                os.makedirs("./out")
+
+            paths = []
+            for i, image in enumerate(data["artifacts"]):
+                with open(f'./out/txt2img_{image["seed"]}.png', "wb") as f:
+                    f.write(base64.b64decode(image["base64"]))
+                    paths.append(f'./out/txt2img_{image["seed"]}.png')
+            
+            return paths
+        elif model == "sd-xl-replicate":
+            output = replicate.run(
+                "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", 
+                input={
+                    "prompt": image_prompt,
+                    "negative_prompt": negative_prompt,
+                    "width": image_width,
+                    "height": image_height,
+                    "num_inference_steps": interferance_steps,
+                    "num_outputs": number_of_images,
+                    "disable_safety_checker": True
                 }
-            ],
-        }
+            )
 
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + stability_api_key,
-        }
-
-        response = requests.post(
-            url,
-            headers=headers,
-            json=body,
-        )
-
-        if response.status_code != 200:
-            raise Exception("Non-200 response: " + str(response.text))
-
-        data = response.json()
-
-        # make sure the out directory exists
-        if not os.path.exists("./out"):
-            os.makedirs("./out")
-
-        paths = []
-        for i, image in enumerate(data["artifacts"]):
-            with open(f'./out/txt2img_{image["seed"]}.png', "wb") as f:
-                f.write(base64.b64decode(image["base64"]))
-                paths.append(f'./out/txt2img_{image["seed"]}.png')
-        
-        return paths
+            return output 
+        elif model == "sd-xl-turbo":
+            output = replicate.run(
+                "fofr/sdxl-turbo:6244ebc4d96ffcc48fa1270d22a1f014addf79c41732fe205fb1ff638c409267", 
+                input={
+                    "prompt": image_prompt,
+                    "width": image_width,
+                    "height": image_height,
+                    "num_inference_steps": int(interferance_steps/20),
+                    "num_outputs": number_of_images*4,
+                    "agree_to_research_only": True
+                }
+            )
+            
+            return output
 
 
     # ----------------------------------------------------------------------------------------------
@@ -138,3 +171,6 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
             image_urls.append(image.url)
 
         return image_urls
+    
+if __name__ == "__main__":
+    print(image_gen("sd-xl-turbo", "A christmas tree in a living room", 1, "square", "normal"))
