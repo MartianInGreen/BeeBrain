@@ -4,6 +4,8 @@ api_keys:
   stabilityai: "YOUR-API-KEY"
   brave-search: "YOUR-API-KEY"
   wolfram-alpha: "YOUR-API-KEY"
+  e2b: "YOUR-API-KEY"
+  replicate: "YOUR-API-KEY"
 user_auth:
   user_id: 
   user_token:
