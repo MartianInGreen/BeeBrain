@@ -49,6 +49,22 @@
             "completion_price": 0.024
         }
       ],
+      "pplx-70b-online": [
+        {
+            "system_name": "pplx-70b-online",
+            "model_name": "pplx-70b-online",
+            "human_name": "Perplexity 70B Online",
+            "description": "A model based on llama 2, fine tuned and provided with real time info by Perplexity.",
+            "context_size": 4096,
+            "max_output_length": 2048,
+            "knowledge_cutoff": "None",
+            "vison": false,
+            "allow_function_call": false,
+            "provider": "openrouter/perplexity/pplx-70b-online",
+            "input_price": 0,
+            "completion_price": 0.0028
+        }
+      ],
       "claude-v2": [
         {
             "system_name": "claude-v2",
