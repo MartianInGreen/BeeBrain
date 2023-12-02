@@ -59,7 +59,13 @@ def quick_search(query: str, country="DE", search_lang="en", test=False, count=5
 
         i = 0
         while i < length:
-            url = data["web"]["results"][i]["profile"]["url"]
+            try: 
+                url = data["web"]["results"][i]["profile"]["url"]
+            except:
+                try: 
+                    url = data["web"]["results"][i]["url"]
+                except:
+                    url = "could not find url"
 
             deep_results = []
             # if "deep_results" in data["web"]["results"][i]:
