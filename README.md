@@ -19,10 +19,10 @@ BeeBrain's core functionality is accessible through an intuitive LLM chat interf
 - **GPT-3.5-Turbo-1106**: A robust model offering a balance of performance and efficiency.
 
 ### Without Function Calling
-- **Nous-hermes-llama2-70b, Phind-codellama-34b, Zephyr-7b-beta, Toppy-m-7b**: These models offer diverse functionalities but lack tool integration.
+- **Claude 2.1, Claude 2, Claude Instant v1, PPLX 70B Online, Nous-hermes-llama2-70b, Phind-codellama-34b, Zephyr-7b-beta, Toppy-m-7b**: These models offer diverse functionalities but lack tool integration.
 
 ## Vision Integration
-The integration of Vision with GPT-4-Turbo is under development, aiming to enhance the chatbot's capabilities significantly.
+Using the Vision tool all tool calling LLM's are able to see.
 
 # Available Tools
 BeeBrain comes with an assortment of tools, each designed to enhance the user experience in unique ways.
@@ -30,14 +30,40 @@ BeeBrain comes with an assortment of tools, each designed to enhance the user ex
 ## Current Tools
 - **Browser**: Enables web searches and website scraping.
 - **Image Generation**: Powered by DALLE-3 or SD-XL for high-quality image creation.
+- **Vision**: Enables all models to see using GPT-4-Vison and Llava-13b
+- **Jupyter Notebook**: Facilitates running and testing Python code.
+- **File Browser**: LLM can see which files have been uploaded and been created. 
 
 ## Tools in Development
 - **Text/PDF Analysis & Summary**: For efficient document handling.
-- **File Browser**: Simplifies file management.
-- **Jupyter Notebook**: Facilitates running and testing Python code.
 - **Paper Search**: Assists in academic research.
 - **Wolfram|Alpha**: Provides expert knowledge and computations.
 - **Audio Generation**: For creating voiceovers and sound effects.
+
+# Roadmap 
+This roadmap isn't an absolute truth, more some guidelines and goals.
+
+## Version 0.1.0
+- [x] Chatting with different LLMs
+- [x] Chat history
+- [x] Tool support
+- [x] Tools: Vision, Image Generation, Python, Web Browser
+- [ ] Mission Support (Characters, Specialists, etc.)
+- [ ] Prompt Library Support
+- [ ] Basic Ui (Copying, Image Copying, Input & Output)
+- [ ] Build ready (Windows)
+
+## Version 0.2.0
+- [ ] Tools: Text/PDF, Wolfram Alpha, Audio Generation, Video Generation
+- [ ] Extended Interface: Seperate Tabs for Image Generation/Editing & Search
+- [ ] Voice Conversations
+- [ ] Better Web Search with Seperate LLM for Search Tasks and focuses (like with Vision)(Focuses: Web, Wikipedia, Academia, YouTube, Reddit)
+- [ ] Phone UI & Android App
+
+## Version 0.3.0
+- [ ] Tools: Doc Maker (PDF, CSVs, Presentations), CodeRunner (C/C++, Go, Rust, Java...), Diagram maker
+- [ ] Web App
+- [ ] ... more to come
 
 # System Requirements
 To utilize BeeBrain effectively, users need to obtain API keys from various service providers.
@@ -45,13 +71,14 @@ To utilize BeeBrain effectively, users need to obtain API keys from various serv
 ## Required API Keys
 - **openai**: For LLM and image generation.
 - **openrouter**: LLM routing.
+- **replicate**: Various tools
 - **stabilityai**: Image processing.
 - **brave-search**: Web search functionality.
 - **wolfram-alpha**: Access to Wolfram Alpha's computational engine.
 
 # Images 
-![image](https://github.com/MartianInGreen/BeeBrain/assets/24570687/7cb6c696-b919-47b7-b862-49b5eea77c48)
-![image](https://github.com/MartianInGreen/BeeBrain/assets/24570687/7d267d84-eae4-45cc-9567-9380a84b4396)
+![image](https://github.com/MartianInGreen/BeeBrain/assets/24570687/1e9f0b9c-32a0-4f26-a98d-a6af892dedd8)
+![image](https://github.com/MartianInGreen/BeeBrain/assets/24570687/14825e96-61e2-448c-90e2-10f928b249cb)
 ![image](https://github.com/MartianInGreen/BeeBrain/assets/24570687/302ca6db-d748-430c-8e99-e72fa6f04d50)
 
 
