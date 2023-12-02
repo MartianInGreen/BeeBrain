@@ -20,7 +20,7 @@ os.environ["REPLICATE_API_TOKEN"] = common.get_api_keys()["replicate"]
 
 def get_models():
     # load beebrain/config/models.json
-    with open("beebrain/config/models.json", "r") as f:
+    with open("config/models.json", "r") as f:
         data = json.load(f)
 
     image_models = data["text-to-image"]
@@ -97,7 +97,7 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
             for i, image in enumerate(data["artifacts"]):
                 with open(f'./working/{chat_id}/out/txt2img_{image["seed"]}.png', "wb") as f:
                     f.write(base64.b64decode(image["base64"]))
-                    paths.append(f'working/{chat_id}/out/txt2img_{image["seed"]}.png')
+                    paths.append(f'sandbox://out/txt2img_{image["seed"]}.png')
             
             return paths
         elif model == "sd-xl-replicate":
@@ -125,7 +125,7 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
 
                 with open(f'./working/{chat_id}/out/sdxl_{image_uuid}.png', 'wb') as f:
                     f.write(response.content)
-                image_locations.append(f'working/{chat_id}/out/sdxl_{image_uuid}.png')
+                image_locations.append(f'sandbox://out/sdxl_{image_uuid}.png')
 
             print(image_locations)
 
@@ -138,7 +138,7 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
                     "width": image_width,
                     "height": image_height,
                     "num_inference_steps": int(interferance_steps/20),
-                    "num_outputs": number_of_images*4,
+                    "num_outputs": number_of_images,
                     "agree_to_research_only": True
                 }
             )
@@ -149,7 +149,7 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
                 response = requests.get(image)
                 with open(f'./working/{chat_id}/out/sdxl_{image_uuid}.png', 'wb') as f:
                     f.write(response.content)
-                image_locations.append(f'working/{chat_id}/out/sdxl_{image_uuid}.png')
+                image_locations.append(f'sandbox://out/sdxl-turbo_{image_uuid}.png')
 
             return image_locations
 
@@ -197,7 +197,7 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
             image_uuid = str(uuid.uuid4())
             with open(f'./working/{chat_id}/out/dalle3_{image_uuid}.png', 'wb') as f:
                 f.write(response.content)
-            image_locations.append(f'working/{chat_id}/out/dalle3_{image_uuid}.png')
+            image_locations.append(f'sandbox://out/dalle3_{image_uuid}.png')
 
         return image_locations
     

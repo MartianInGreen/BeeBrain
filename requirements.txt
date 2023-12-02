@@ -5,3 +5,4 @@ yaml
 e2b
 pyinstaller
 pillow 
+replicate

@@ -5,13 +5,16 @@ import flet as ft
 import openai
 from openai import OpenAI
 from e2b import Sandbox, CodeInterpreter
+import json, os, base64, uuid, re, sys
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+print(os.getcwd())
 
 import psutil, platform
 
 import datetime, time
 
-from tools import llm, common, image
-import json, os, base64, uuid, re, sys
+from tools import llm, common, image, browser
 
 from tools.browser import quick_search, copilot, scrape_url
 from tools.image import image_gen
@@ -19,6 +22,8 @@ from tools.image import image_gen
 ### ----------------------------------------------------------
 ### Settings
 ### ----------------------------------------------------------
+
+openai.api_key = common.get_api_keys()["openai"]
 
 ### ----------------------------------------------------------
 ### functions
@@ -59,7 +64,7 @@ def parse_vision_names():
     return vision_llms
 
 def get_llms():
-    with open("beebrain/config/models.json", "r") as file:
+    with open("config/models.json", "r") as file:
         models = json.load(file)
     
     # Get the chat models
@@ -67,7 +72,7 @@ def get_llms():
     return chat_models
 
 def get_tool_functions(tools):
-    with open("beebrain/config/tools.json", "r") as file:
+    with open("config/tools.json", "r") as file:
         file_tools = json.load(file)
     
     function_list = []
@@ -111,7 +116,7 @@ class ChatApp(ft.UserControl):
         self.mission_dropdown = ft.Dropdown(width=200, options=[], label="Mission")
         self.reset_button = ft.TextButton(width=200, icon=ft.icons.AUTORENEW, text="NEW CHAT", on_click=lambda _: self.clear_chat(add_to_history=True))
         self.past_chats_list = ft.ListView(expand=True)
-        self.llm_model_dropdown = ft.Dropdown(width=200, options=[], label="LLM Model")
+        self.llm_model_dropdown = ft.Dropdown(width=240, options=[], label="LLM Model")
         self.temperature_slider = ft.Slider(min=0, max=2, divisions=21, label="{value}", value=0.7, on_change=self.change_temperature)
         self.vision_model_dropdown = ft.Dropdown(width=200, options=[], label="Vision Model")
         self.vision_quality = ft.Dropdown(width=200, options=[ft.dropdown.Option("Low"), ft.dropdown.Option("High")], label="Vision Quality", value="High")
@@ -157,35 +162,38 @@ class ChatApp(ft.UserControl):
     def pick_file_result(self, e: ft.FilePickerResultEvent):
         print(e.files)
 
-        if not os.path.exists("working/" + self.chat_id):
-                os.mkdir("working/" + self.chat_id)
-                os.mkdir("working/" + self.chat_id + "/out")
-                os.mkdir("working/" + self.chat_id + "/in")
+        if e.files != None:
+            if not os.path.exists("working/" + self.chat_id):
+                    os.mkdir("working/" + self.chat_id)
+                    os.mkdir("working/" + self.chat_id + "/out")
+                    os.mkdir("working/" + self.chat_id + "/in")
 
-        files = []
-        file_names = []
+            files = []
+            file_names = []
 
-        for file in e.files:
-            file_name = file.name
-            file_path = file.path
+            for file in e.files:
+                file_name = file.name
+                file_path = file.path
 
-            files.append({"name": file_name, "path": file_path})
-            file_names.append(file_name)
+                files.append({"name": file_name, "path": file_path})
+                file_names.append(file_name)
 
-        for file in files:
-            file_name = file["name"]
-            file_path = file["path"]
+            for file in files:
+                file_name = file["name"]
+                file_path = file["path"]
 
-            with open(file_path, "rb") as file:
+                read_file = None
+                with open(file_path, "rb") as file:
+                    read_file = file.read()
                 with open("working/" + self.chat_id + "/in/" + file_name, "wb") as out_file:
-                    out_file.write(file.read())
+                    out_file.write(read_file)
             
-        self.add_message_to_chat("Uploaded files: " + str(file_names), "tool", "file_upload", {"files": file_names})
-        if self.chat_history != None:
-            self.chat_history.append({
-                "role": "system",
-                "content": "User uploaded the following file(s): " + str(file_names)
-            })
+            self.add_message_to_chat("Uploaded files: " + str(file_names), "tool", "file_upload", {"files": file_names})
+            if self.chat_history != None:
+                self.chat_history.append({
+                    "role": "system",
+                    "content": "User uploaded the following file(s): " + str(file_names)
+                })
 
     def populate_past_chats(self):
         # Get all past chats
@@ -196,10 +204,10 @@ class ChatApp(ft.UserControl):
 
         # Add the chats to the list
         for chat in past_chats:
-            with open("working/" + chat + "/chat.json", "r") as file:
-                chat = json.load(file)[0]["content"]
+            # with open("working/" + chat + "/chat.json", "r") as file:
+            #     chat = json.load(file)[0]["content"]
             short_chat = chat[:21]
-            self.past_chats_list.controls.append(ft.TextButton(text=short_chat, on_click=lambda _: self.load_chat(chat_id=chat)))
+            self.past_chats_list.controls.append(ft.TextButton(text=short_chat, on_click=lambda _, chat=chat: self.load_chat(chat_id=chat)))
 
         self.page.update()
 
@@ -221,6 +229,8 @@ class ChatApp(ft.UserControl):
         # Add the chat name to the chat
         self.add_message_to_chat("**Chat-ID:** " + chat_name, "system", add_to_history=False)
 
+        self.chat_history = []
+
         # Add the chat history to the chat
         for message in chat_history[0:]:
             role = message["role"]
@@ -228,15 +238,24 @@ class ChatApp(ft.UserControl):
 
             if role == "user":
                 self.add_message_to_chat(content, "user", add_to_history=False)
+                self.chat_history.append(message)
             elif role == "assistant":
                 self.add_message_to_chat(content, "assistant", add_to_history=False)
+                self.chat_history.append(message)
             elif role == "tool":
-                tool_name = message["name"]
-                tool_info = message["content"]
+                tool_name = message["tool_name"]
+                tool_info = message["tool_info"]
+
+                tool_message = {
+                    "role": "system",
+                    "content": "Used tool: " + tool_name + "\n\n" + "Tool info: " + str(tool_info)
+                }
+
+                self.chat_history.append(tool_message)
 
                 self.add_message_to_chat(content, "tool", tool_name, tool_info, add_to_history=False)
             elif role == "system":
-                self.add_message_to_chat(content, "system")
+                self.add_message_to_chat(content, "system", add_to_history=False)
 
         self.chat.update()
 
@@ -320,6 +339,37 @@ class ChatApp(ft.UserControl):
         self.clear_chat()
         self.populate_past_chats()
 
+    def speak_message(self, message: str):
+        # Use openai tts to speak the message
+        print("Getting audio...")
+        speech_uuid = str(uuid.uuid4())
+        speech_uuid = speech_uuid[:8]
+
+        if not os.path.exists("working/" + self.chat_id + "/speech"):
+            os.mkdir("working/" + self.chat_id + "/speech")
+
+        speech_file_path = "working/" + self.chat_id + "/speech/speech-" + speech_uuid + ".mp3"
+        response = openai.audio.speech.create(
+            model="tts-1",
+            voice="nova",
+            input=message,
+        )
+        response.stream_to_file(speech_file_path)
+
+        self.page.overlay.append(ft.Audio(src=speech_file_path, autoplay=True, volume=1, balance=0))
+        self.page.update()
+        print("Playing Audio")
+
+    def speech_to_text(self, audio_file_path: str):
+        audio_file = open(audio_file_path, 'rb')
+        
+        transcript = openai.Client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+        )
+
+        return transcript.text
+
     def add_message_to_chat(self, message: str, sender: str, tool_name=None, tool_info=None, add_to_history=True):
         # Create the message row with avatar and user label
 
@@ -384,7 +434,13 @@ class ChatApp(ft.UserControl):
 
                 page_images = ft.Row(expand=False, wrap=True, width=self.center_width)
 
+                image_paths = []
+
                 for image in images:
+                    image_path = "working/" + self.chat_id + "/" + image.replace("sandbox://", "")
+                    image_paths.append(image_path)
+
+                for image in image_paths:
                     page_images.controls.append(ft.Image(src=image, width=self.center_width/num_images))
 
                 message = f"**Prompt**: '{tool_info['prompt']}'\n\n" + f"**Number of images**: {tool_info['number_of_images']}\n\n" + f"**Image aspect**: {tool_info['image_aspect']}\n\n" + f"**Image model**: {tool_info['image_model']}\n\n" + f"**Image quality**: {tool_info['image_quality']}\n\n"
@@ -412,7 +468,8 @@ class ChatApp(ft.UserControl):
         message_header = ft.Container(
             content=ft.Row([
                 ft.CircleAvatar(content=content, bgcolor=ft.colors.AMBER, color=ft.colors.WHITE),
-                ft.Markdown(f"### {name}", selectable=False)
+                ft.Markdown(f"### {name}", selectable=False),
+                ft.IconButton(icon=ft.icons.SPEAKER_ROUNDED, on_click=lambda _: self.speak_message(message))
             ]),
             width=self.center_width
         )
@@ -575,7 +632,7 @@ class ChatApp(ft.UserControl):
         print("Using image: " + image)
 
         # Get system message
-        with open("beebrain/config/templates/vision.md", "r") as file:
+        with open("config/templates/vision.md", "r") as file:
             system_prompt = file.read()
             system_prompt = system_prompt.replace("{{llm_name}}", vision_model)
             system_prompt = system_prompt.replace("{{knowledge_cutoff}}", "2023-04")
@@ -710,6 +767,9 @@ class ChatApp(ft.UserControl):
             
             # Add to chat history 
             if full_response[0]["content"] != None:
+                content = full_response[0]["content"]
+                content = re.sub(r'!\[.*\]\((sandbox)(.*)\)', '', content)
+                full_response[0]["content"] = content
                 self.chat.controls.pop()
                 self.add_message_to_chat(full_response[0]["content"], "assistant", add_to_history=True)
             return full_response[0]
@@ -790,7 +850,7 @@ class ChatApp(ft.UserControl):
         ### -------------------------------------
 
         if self.chat_history == None:
-            with open("beebrain/config/templates/default.md", "r") as file:
+            with open("config/templates/default.md", "r") as file:
                 system_prompt = file.read()
             
             uname = platform.uname()
@@ -829,16 +889,13 @@ class ChatApp(ft.UserControl):
             if response == None:
                 self.add_message_to_chat("Error while calling LLM...", "system")
 
-                print("Current chat history: " + str(prompt_list))
-
                 try: 
                     self.chat_history.pop()
                     if self.chat_history[-1]["role"] == "assistant" and self.chat_history[-1]["content"] == None:
                         self.chat_history.pop()
                     if self.chat_history[-1]["role"] == "user":
                         self.chat_history.pop()
-                    
-                    print("Current chat history: " + str(prompt_list))
+    
                 except Exception as e:
                     print("Error while removing last message from chat history: " + str(e))
                 # if prompt_list != None:

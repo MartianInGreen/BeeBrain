@@ -7,6 +7,7 @@ from openai import OpenAI
 
 import json, os, sys, time, datetime, logging
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'tools'))
+
 from common import get_api_keys, get_tools, get_agents
 
 from browser import quick_search, copilot, scrape_url
@@ -39,7 +40,7 @@ def python(code: str):
 ### ---------------------------------------------------------------------
 
 def parse_tools(tools):
-    with open("beebrain/config/tools.json", "r") as file:
+    with open("config/tools.json", "r") as file:
         file_tools = json.load(file)
     
     function_list = []
@@ -53,7 +54,7 @@ def parse_tools(tools):
 
 def get_llms():
     # Read the config/models.json file 
-    with open("beebrain/config/models.json", "r") as file:
+    with open("config/models.json", "r") as file:
         models = json.load(file)
     
     # Get the chat models
@@ -62,7 +63,7 @@ def get_llms():
 
 def get_visual_llms():
     # Read the config/models.json file 
-    with open("beebrain/config/models.json", "r") as file:
+    with open("config/models.json", "r") as file:
         models = json.load(file)
     
     # Get the chat models
@@ -99,6 +100,9 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None, id
             model = llm_model_list["gpt-3.5-turbo"][0]
 
         system_prompt = system_prompt.replace("{{knowledge_cutoff}}", str(model["knowledge_cutoff"]))
+        system_prompt = system_prompt.replace("{{image_capability}}", "")
+
+        print("System prompt: " + system_prompt)
 
         model_max_tokens = model["context_size"]
         model_max_new_tokens = model["max_output_length"]
@@ -146,6 +150,7 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None, id
             system_prompt = system_prompt.replace("{{tools}}", "# Tools\n\n" + tool_prompts)
         else:
             tool_functions = None
+            system_prompt = system_prompt.replace("{{tools}}", "")
         
         # -------------------------------------
         # Update the prompt list
@@ -210,7 +215,7 @@ def call_llm(model: str, prompt_list, temperature: float, tools, settings):
     if provider == "openrouter":
         extra_headers = {
             "HTTP-Referer": "http://localhost",
-            "X-Title": "Bee Brain"
+            "X-Title": "BeeBrain"
         }
     else:
         extra_headers = {}
