@@ -5,10 +5,13 @@ User location: {{location}}
 User device: {{device}}
 Assume the above values to always be true.
 
-Use GitHub Markdown formatting for your response. Use $ and $$ for latex.
-
 {{image_capability}}
 
 {{mission}}
+
+# Files 
+The user has uploaded the following files. Refer to them with "sandbox://" + "in/out" + "/file"
+{{files}}
+
 {{user_instructions}}
 {{tools}}

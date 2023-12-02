@@ -73,7 +73,7 @@ def get_visual_llms():
 ### Main
 ### ---------------------------------------------------------------------
 
-def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None):
+def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None, id = None):
         # -------------------------------------
         # Getting LLM models
         # -------------------------------------
@@ -81,6 +81,15 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None):
         system_prompt = prompt_list[0]['content']
         system_prompt = system_prompt.replace("{{llm_name}}", model)
         system_prompt = system_prompt.replace("{{current_date}}", datetime.datetime.now().strftime('%Y-%m-%d %H:%M') + " " + time.strftime('UTC%z'))
+
+        # Get files from the working/id/in and /out folders 
+        # and add them to the system prompt
+
+        in_files = os.listdir("working/" + id + "/in")
+        out_files = os.listdir("working/" + id + "/out")
+
+        # Add the files to the system prompt
+        system_prompt = system_prompt.replace("{{files}}", "**In:** " + str(in_files) + "\n**Out:** " + str(out_files))
 
         # Get the model
         try: 
@@ -93,6 +102,7 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None):
 
         model_max_tokens = model["context_size"]
         model_max_new_tokens = model["max_output_length"]
+        model_allow_function_calls = model["allow_function_call"]
         
         # Get the API key
         provider = model["provider"]
@@ -124,7 +134,7 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None):
         # -------------------------------------
         # Setting up tools
         # -------------------------------------
-        if tools != None:
+        if tools != None and model_allow_function_calls == True:
             # Get the tool prompts
             tool_functions = parse_tools(tools)
             #tools = tools[0]

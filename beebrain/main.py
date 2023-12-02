@@ -114,6 +114,7 @@ class ChatApp(ft.UserControl):
         self.llm_model_dropdown = ft.Dropdown(width=200, options=[], label="LLM Model")
         self.temperature_slider = ft.Slider(min=0, max=2, divisions=21, label="{value}", value=0.7, on_change=self.change_temperature)
         self.vision_model_dropdown = ft.Dropdown(width=200, options=[], label="Vision Model")
+        self.vision_quality = ft.Dropdown(width=200, options=[ft.dropdown.Option("Low"), ft.dropdown.Option("High")], label="Vision Quality", value="High")
         self.tools_list = ft.Column(controls=[], width=200)
         self.settings_list = ft.ListView()
 
@@ -156,6 +157,11 @@ class ChatApp(ft.UserControl):
     def pick_file_result(self, e: ft.FilePickerResultEvent):
         print(e.files)
 
+        if not os.path.exists("working/" + self.chat_id):
+                os.mkdir("working/" + self.chat_id)
+                os.mkdir("working/" + self.chat_id + "/out")
+                os.mkdir("working/" + self.chat_id + "/in")
+
         files = []
         file_names = []
 
@@ -175,6 +181,11 @@ class ChatApp(ft.UserControl):
                     out_file.write(file.read())
             
         self.add_message_to_chat("Uploaded files: " + str(file_names), "tool", "file_upload", {"files": file_names})
+        if self.chat_history != None:
+            self.chat_history.append({
+                "role": "system",
+                "content": "User uploaded the following file(s): " + str(file_names)
+            })
 
     def populate_past_chats(self):
         # Get all past chats
@@ -300,7 +311,7 @@ class ChatApp(ft.UserControl):
         )
 
         right = ft.Container(
-            content=ft.Column([self.llm_model_dropdown, self.temperature_slider, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list], width=self.center_width),
+            content=ft.Column([self.llm_model_dropdown, self.temperature_slider, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, self.vision_quality, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list], width=self.center_width, scroll="auto"),
             width=200, bgcolor=ft.colors.BLACK, margin=ft.margin.all(2)
         )
 
@@ -333,7 +344,9 @@ class ChatApp(ft.UserControl):
                     file_chat.append({"role": sender, "content": message, "tool_name": tool_name, "tool_info": tool_info})
             with open("working/" + self.chat_id + "/chat.json", "w") as file:
                 json.dump(file_chat, file)
-            
+        
+        if sender == "tool" and tool_name != None and tool_name != "file_upload":
+            self.chat.controls.pop()
 
         content = ""
         if sender == "user":
@@ -589,12 +602,15 @@ class ChatApp(ft.UserControl):
             image_data = None
             image_path = image.replace("sandbox://", "")
 
+            image_path = "working/" + self.chat_id + "/" + image_path
+
             with open(image_path, "rb") as image_file:
                 image_data = base64.b64encode(image_file.read()).decode('utf-8')
                 messages[1]["content"].append({
                     "type": "image_url",
                     "image_url": {
-                        "url": f"data:image/jpeg;base64,{image_data}"
+                        "url": f"data:image/jpeg;base64,{image_data}",
+                        "detail": self.vision_quality.value.lower()
                     }
                 })
         elif image.startswith("http"):
@@ -666,7 +682,6 @@ class ChatApp(ft.UserControl):
 
             for chunk in completion:
                 if chunk.choices[0].delta.tool_calls is not None: 
-                    print(chunk.choices[0].delta.tool_calls)
                     if full_response[0]["tool_calls"] == None:
                         tool_calls = {
                             "id": chunk.choices[0].delta.tool_calls[0].id,
@@ -689,18 +704,14 @@ class ChatApp(ft.UserControl):
                         self.add_message_to_chat(full_response[0]["content"], "assistant", add_to_history=False)
 
                     if full_response[0]["content"] == None:
-                        full_response[0]["content"] = chunk.choices[0].delta.content
+                        full_response[0]["content"] = chunk.choices[0].delta.content.replace("\n", "  \n")
                     else:
-                        full_response[0]["content"] = full_response[0]["content"] + chunk.choices[0].delta.content
-
-                    print("Content: " + str(chunk.choices[0].delta))
+                        full_response[0]["content"] = full_response[0]["content"] + chunk.choices[0].delta.content.replace("\n", "  \n")
             
             # Add to chat history 
             if full_response[0]["content"] != None:
                 self.chat.controls.pop()
                 self.add_message_to_chat(full_response[0]["content"], "assistant", add_to_history=True)
-
-            print(full_response[0])
             return full_response[0]
         except Exception as e:
             print("Error calling API: " + str(e))
@@ -714,7 +725,7 @@ class ChatApp(ft.UserControl):
             "vision": self.vision,
         }
 
-        
+        self.add_message_to_chat("Calling tool: " + tool_calls["tool_calls"][0]["function"]["name"], "tool", add_to_history=False)
 
         function_name = tool_calls["tool_calls"][0]["function"]["name"]
         if function_name not in available_functions:
@@ -807,7 +818,7 @@ class ChatApp(ft.UserControl):
         ### -------------------------------------
         ### Getting LLM response
         ### -------------------------------------
-        prompt_list, tools, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers, model_name = llm.prepare_llm_response(model=llm_model, prompt_list=self.chat_history, tools=tools, llm_model_list=self.llm_model_list)
+        prompt_list, tools, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers, model_name = llm.prepare_llm_response(model=llm_model, prompt_list=self.chat_history, tools=tools, llm_model_list=self.llm_model_list, id=self.chat_id)
 
         i = 0
         while i < 5: 
