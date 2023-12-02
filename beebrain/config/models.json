@@ -28,10 +28,58 @@
               "knowledge_cutoff": "2021-09",
               "vison": false,
               "allow_function_call": true,
-              "provider": "openai",
+              "provider": "openai/gpt-3.5-turbo-1106",
               "input_price": 0.001,
               "completion_price": 0.002
           }
+      ],
+      "claude-v2-1": [
+        {
+            "system_name": "claude-v2-1",
+            "model_name": "claude-v2-1",
+            "human_name": "Claude v2.1",
+            "description": "Anthropics newest model. With a whopping 200K context Window.",
+            "context_size": 200000,
+            "max_output_length": 4095,
+            "knowledge_cutoff": "2023",
+            "vison": false,
+            "allow_function_call": false,
+            "provider": "openrouter/anthropic/claude-2",
+            "input_price": 0.008,
+            "completion_price": 0.024
+        }
+      ],
+      "claude-v2": [
+        {
+            "system_name": "claude-v2",
+            "model_name": "claude-v2",
+            "human_name": "Claude v2",
+            "description": "Anthropics most well known model. With a whopping 100K context Window.",
+            "context_size": 100000,
+            "max_output_length": 4095,
+            "knowledge_cutoff": "2023",
+            "vison": false,
+            "allow_function_call": false,
+            "provider": "openrouter/anthropic/claude-2.0",
+            "input_price": 0.008,
+            "completion_price": 0.024
+        }
+      ],
+      "claude-instant-v1": [
+        {
+            "system_name": "claude-instant-v1",
+            "model_name": "claude-instant-v1",
+            "human_name": "Claude Instant V1",
+            "description": "Anthropics fastest model. With a whopping 100K context Window.",
+            "context_size": 100000,
+            "max_output_length": 4095,
+            "knowledge_cutoff": "2023",
+            "vison": false,
+            "allow_function_call": false,
+            "provider": "openrouter/anthropic/claude-instant-v1",
+            "input_price": 0.00163,
+            "completion_price": 0.00551
+        }
       ],
       "nous-hermes-llama2-70b": [
           {
