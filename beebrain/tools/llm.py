@@ -116,7 +116,7 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None):
         if provider == "openrouter":
             extra_headers = {
                 "HTTP-Referer": "http://localhost",
-                "X-Title": "Bee Brain"
+                "X-Title": "BeeBrain"
             }
         else:
             extra_headers = {}
