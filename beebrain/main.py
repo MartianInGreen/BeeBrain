@@ -112,6 +112,7 @@ class ChatApp(ft.UserControl):
         self.reset_button = ft.TextButton(width=200, icon=ft.icons.AUTORENEW, text="NEW CHAT", on_click=lambda _: self.clear_chat(add_to_history=True))
         self.past_chats_list = ft.ListView(expand=True)
         self.llm_model_dropdown = ft.Dropdown(width=200, options=[], label="LLM Model")
+        self.temperature_slider = ft.Slider(min=0, max=2, divisions=21, label="{value}", value=0.7, on_change=self.change_temperature)
         self.vision_model_dropdown = ft.Dropdown(width=200, options=[], label="Vision Model")
         self.tools_list = ft.Column(controls=[], width=200)
         self.settings_list = ft.ListView()
@@ -119,7 +120,7 @@ class ChatApp(ft.UserControl):
         self.image_model_dropdown = ft.Dropdown(width=200, options=[], label="Image Model", on_change=lambda _: setattr(self, 'SETTING_image_model', self.image_model_dropdown.value))
         self.image_quality_dropdown = ft.Dropdown(width=200, options=[ft.dropdown.Option("Low"), ft.dropdown.Option("Medium"), ft.dropdown.Option("High")], label="Image Quality", value="Medium", on_change=lambda _: setattr(self, 'SETTING_image_quality', self.image_quality_dropdown.value))
 
-        self.chat = ft.Column([], scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        self.chat = ft.Column([], scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER, auto_scroll=True)
         self.text_input = ft.TextField(label="Type your message here...", multiline=True, expand=True)
         self.send_button = ft.IconButton(icon=ft.icons.SEND_ROUNDED, on_click=self.user_send_message)
 
@@ -142,8 +143,15 @@ class ChatApp(ft.UserControl):
 
         self.SETTING_image_model = "sd-xl-replicate"
         self.SETTING_image_quality = "medium"
+        self.SETTING_llm_temperature = 0.7
 
         self.chat_id = str(uuid.uuid4())
+
+    def change_temperature(self, e):
+        self.SETTING_llm_temperature = round(e.control.value, 1)
+
+        self.temperature_slider.label = str(self.SETTING_llm_temperature)
+        self.temperature_slider.update()
 
     def pick_file_result(self, e: ft.FilePickerResultEvent):
         print(e.files)
@@ -292,7 +300,7 @@ class ChatApp(ft.UserControl):
         )
 
         right = ft.Container(
-            content=ft.Column([self.llm_model_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list], width=self.center_width),
+            content=ft.Column([self.llm_model_dropdown, self.temperature_slider, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list], width=self.center_width),
             width=200, bgcolor=ft.colors.BLACK, margin=ft.margin.all(2)
         )
 
@@ -396,9 +404,12 @@ class ChatApp(ft.UserControl):
             width=self.center_width
         )
 
+        message_uuid = str(uuid.uuid4())
+
         # Create the Markdown component for the message
         message_body = ft.Markdown(
             value=message,  # Use the input text here
+            key=message_uuid,
             selectable=True,
             code_theme="atom-one-dark",
             code_style=ft.TextStyle(font_family="Roboto Mono"),
@@ -429,6 +440,7 @@ class ChatApp(ft.UserControl):
             code_message = ft.Markdown(
                 value=code_message,  # Use the input text here
                 selectable=True,
+                key=message_uuid,
                 code_theme="atom-one-dark",
                 extension_set="gitHubWeb",
                 code_style=ft.TextStyle(font_family="Roboto Mono"),
@@ -450,11 +462,13 @@ class ChatApp(ft.UserControl):
         self.chat.controls.append(message_container)
         self.chat.update()
 
-    def browser(self, query: str, browse_type: str):
+    def browser(self, query: str, browse_type: str, lang: str = "en"):
         if browse_type == "quick_search":
             try: 
+                print("Searching for: " + query)
                 raw_results = quick_search(query=query, count=self.SETTING_search_depth)
                 results = json.dumps(raw_results)
+                print("Got results: " + str(results))
             except Exception as e:
                 print(e)
 
@@ -617,15 +631,17 @@ class ChatApp(ft.UserControl):
     def call_llm(self, prompt_list, model_name, tools, temperature: int, max_new_tokens: int, llm_api_key: str, llm_base_url: str, extra_headers):
         client = OpenAI(api_key=llm_api_key, base_url=llm_base_url)
 
+        print(self.SETTING_llm_temperature)
+
         try: 
             if tools is not None:
                 completion = client.chat.completions.create(
                     extra_headers=extra_headers,
                     model=model_name,
                     messages=prompt_list,
-                    stream=False,
+                    stream=True,
                     max_tokens=max_new_tokens,
-                    temperature=temperature,
+                    temperature=self.SETTING_llm_temperature,
                     tools=tools,
                     timeout=60,
                     tool_choice="auto"
@@ -635,12 +651,57 @@ class ChatApp(ft.UserControl):
                     extra_headers=extra_headers,
                     model=model_name,
                     messages=prompt_list,
-                    stream=False,
+                    stream=True,
                     max_tokens=max_new_tokens,
                     timeout=60,
-                    temperature=temperature,
+                    temperature=self.SETTING_llm_temperature,
                 )
-            return completion
+            full_response = [{
+                "role": "assistant",
+                "content": None,
+                "tool_calls": None
+            }]
+
+            added_message = False
+
+            for chunk in completion:
+                if chunk.choices[0].delta.tool_calls is not None: 
+                    print(chunk.choices[0].delta.tool_calls)
+                    if full_response[0]["tool_calls"] == None:
+                        tool_calls = {
+                            "id": chunk.choices[0].delta.tool_calls[0].id,
+                            "type": "function",
+                            "function": {
+                                "name": chunk.choices[0].delta.tool_calls[0].function.name,
+                                "arguments": chunk.choices[0].delta.tool_calls[0].function.arguments
+                            }
+                        }
+
+                        full_response[0]["tool_calls"] = tool_calls
+                    else:
+                        full_response[0]["tool_calls"]["function"]["arguments"] = full_response[0]["tool_calls"]["function"]["arguments"] + chunk.choices[0].delta.tool_calls[0].function.arguments
+                elif chunk.choices[0].delta.content is not None:
+                    if added_message == False:
+                        self.add_message_to_chat("", "assistant", add_to_history=False)
+                        added_message = True
+                    elif added_message == True:
+                        self.chat.controls.pop()
+                        self.add_message_to_chat(full_response[0]["content"], "assistant", add_to_history=False)
+
+                    if full_response[0]["content"] == None:
+                        full_response[0]["content"] = chunk.choices[0].delta.content
+                    else:
+                        full_response[0]["content"] = full_response[0]["content"] + chunk.choices[0].delta.content
+
+                    print("Content: " + str(chunk.choices[0].delta))
+            
+            # Add to chat history 
+            if full_response[0]["content"] != None:
+                self.chat.controls.pop()
+                self.add_message_to_chat(full_response[0]["content"], "assistant", add_to_history=True)
+
+            print(full_response[0])
+            return full_response[0]
         except Exception as e:
             print("Error calling API: " + str(e))
             return None
@@ -653,29 +714,30 @@ class ChatApp(ft.UserControl):
             "vision": self.vision,
         }
 
-        for tool_call in tool_calls:
-            function_name = tool_call.function.name
-            if function_name not in available_functions:
-                print(f"Function {function_name} not found")
-                return None
+        
 
-            function_to_call = available_functions[function_name]
-            print(f"Calling function {function_name}...")
+        function_name = tool_calls["tool_calls"][0]["function"]["name"]
+        if function_name not in available_functions:
+            print(f"Function {function_name} not found")
+            return None
 
-            try:
-                function_args = json.loads(tool_call.function.arguments)
-                print(function_args)
-                function_response = function_to_call(**function_args)
-            except Exception as e:
-                print(f"Error in function call {function_name}: {e}")
-                return None
+        function_to_call = available_functions[function_name]
+        print(f"Calling function {function_name}...")
 
-            prompt_list.append({
-                "tool_call_id": tool_call.id,
-                "role": "tool",
-                "name": function_name,
-                "content": function_response
-            })
+        try:
+            function_args = json.loads(tool_calls["tool_calls"][0]["function"]["arguments"])
+            print(function_args)
+            function_response = function_to_call(**function_args)
+        except Exception as e:
+            print(f"Error in function call {function_name}: {e}")
+            return None
+
+        prompt_list.append({
+            "tool_call_id": tool_calls["tool_calls"][0]["id"],
+            "role": "tool",
+            "name": function_name,
+            "content": function_response
+        })
 
         return prompt_list
 
@@ -755,55 +817,83 @@ class ChatApp(ft.UserControl):
 
             if response == None:
                 self.add_message_to_chat("Error while calling LLM...", "system")
+
+                print("Current chat history: " + str(prompt_list))
+
+                try: 
+                    self.chat_history.pop()
+                    if self.chat_history[-1]["role"] == "assistant" and self.chat_history[-1]["content"] == None:
+                        self.chat_history.pop()
+                    if self.chat_history[-1]["role"] == "user":
+                        self.chat_history.pop()
+                    
+                    print("Current chat history: " + str(prompt_list))
+                except Exception as e:
+                    print("Error while removing last message from chat history: " + str(e))
+                # if prompt_list != None:
+                #     try: 
+                #         # Remove the last message from the chat history
+                #         prompt_list.pop()
+
+                #         # Check if last message was a tool call
+                #         if prompt_list[-1]["role"] == "assistant" and prompt_list[-1]["content"] == None:
+                #             # Remove the tool call from the prompt list
+                #             prompt_list.pop()
+                #         if prompt_list[-1]["role"] == "user":
+                #             # Remove the tool call from the prompt list
+                #             prompt_list.pop()
+
+                #         print("Current chat history: " + prompt_list)
+                #     except Exception as e:
+                #         print("Error while removing last message from chat history: " + str(e))
+
                 break
             else:
-                content = response.choices[0].message
-                tool_calls = content.tool_calls
+                content = response["content"]
+                tool_calls = response["tool_calls"]
 
                 if tool_calls:
                     print("Calling Tool...")
-                    for tool_call in tool_calls:
-                        # Extract necessary data from the tool call
-                        tool_call_id = tool_call.id
-                        function_name = tool_call.function.name
-                        arguments_json = tool_call.function.arguments
-                    
-                        # Construct the tool call dictionary
-                        tool_call_dict = {
-                            "role": "assistant",
-                            "content": None,
-                            "tool_calls": [{
-                                "id": tool_call_id,
-                                "type": "function",
-                                "function": {
-                                    "name": function_name,
-                                    "arguments": arguments_json
-                                }
-                            }]
-                        }
+                    # Extract necessary data from the tool call
+                    tool_call_id = tool_calls["id"]
+                    function_name = tool_calls["function"]["name"]
+                    arguments_json = tool_calls["function"]["arguments"]
+                
+                    # Construct the tool call dictionary
+                    tool_call_dict = {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [{
+                            "id": tool_call_id,
+                            "type": "function",
+                            "function": {
+                                "name": function_name,
+                                "arguments": arguments_json
+                            }
+                        }]
+                    }
 
-                        # Add the tool call to the prompt list
-                        prompt_list.append(tool_call_dict)
+                    # Add the tool call to the prompt list
+                    prompt_list.append(tool_call_dict)
                 
                     # Call the tools
                     print(tool_calls)
-                    prompt_list = self.call_tool(tool_calls, prompt_list)
+                    prompt_list = self.call_tool(tool_call_dict, prompt_list)
                     i += 1
                     print("Got Tool response...")
                 
                 # Get the message content from the response
-                elif content.content:
-                    message_content = content.content
-                    print(message_content)
+                elif content != None:
+                    print(content)
 
                     # replace this regex !\[.*\]\((sandbox)(.*)\) with nothing
 
-                    message_content = re.sub(r'!\[.*\]\((sandbox)(.*)\)', '', message_content)
+                    content = re.sub(r'!\[.*\]\((sandbox)(.*)\)', '', content)
 
-                    self.add_message_to_chat(message_content, "assistant")
+                    #self.add_message_to_chat(content, "assistant")
                     prompt_list.append({
                         "role": "assistant",
-                        "content": message_content
+                        "content": content
                     })
                     i += 1 
                     break
