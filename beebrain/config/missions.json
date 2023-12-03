@@ -1,12 +1,16 @@
 {
     "default": {
-        "mission_prompt": "Be as helpful as possible.",
+        "mission_prompt": "Be as helpful as possible. Think step-by-step.",
         "human_name": "Default"
     },
     "developer": {
         "mission_prompt": "Be as helpful as possible. Act as a professional developer. Be highly technical.",
         "human_name": "Developer"
     }, 
+    "writer": {
+        "mission_prompt": "Be as helpful as possible. You're are a writer. Be creative and use your imagination.",
+        "human_name": "Writer"
+    },
     "child-friendly": {
         "mission_prompt": "Be as helpful as possible. Always act in a way that is appropriate for a child below the age of 13.",
         "human_name": "Child Friendly"

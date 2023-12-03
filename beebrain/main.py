@@ -151,6 +151,9 @@ class ChatApp(ft.UserControl):
         self.SETTING_image_quality = "medium"
         self.SETTING_llm_temperature = 0.7
 
+        with open("config/templates/default.md", "r") as file:
+                self.system_prompt = file.read()
+
         self.chat_id = str(uuid.uuid4())
 
     def change_temperature(self, e):
@@ -299,6 +302,14 @@ class ChatApp(ft.UserControl):
         self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl-turbo"))
         self.image_model_dropdown.options.append(ft.dropdown.Option("dalle-3"))
         self.image_model_dropdown.value = "sd-xl-replicate"
+
+        with open("config/missions.json", "r") as file:
+            missions = json.load(file)
+        
+        for mission in missions:
+            self.mission_dropdown.options.append(ft.dropdown.Option(text=missions[mission]["human_name"], key=mission))
+
+        self.mission_dropdown.value = "default"
 
         # Initialize tools list
         all_tools = parse_tools()
@@ -850,19 +861,10 @@ class ChatApp(ft.UserControl):
         ### -------------------------------------
 
         if self.chat_history == None:
-            with open("config/templates/default.md", "r") as file:
-                system_prompt = file.read()
-            
-            uname = platform.uname()
-            device = "OS: " + uname.system + " " + uname.release + " & " + uname.machine
-
-            system_prompt = system_prompt.replace("{{user_instructions}}", "")
-            system_prompt = system_prompt.replace("{{location}}", "Germany, Rheinland-Pfalz, Wachenheim an der Weinstraße")
-            system_prompt = system_prompt.replace("{{device}}", device)
 
             self.chat_history = [{
                 "role": "system",
-                "content": system_prompt
+                "content": self.system_prompt
             }]
 
             self.chat_history.append({
@@ -878,7 +880,8 @@ class ChatApp(ft.UserControl):
         ### -------------------------------------
         ### Getting LLM response
         ### -------------------------------------
-        prompt_list, tools, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers, model_name = llm.prepare_llm_response(model=llm_model, prompt_list=self.chat_history, tools=tools, llm_model_list=self.llm_model_list, id=self.chat_id)
+        print(self.mission_dropdown.value)
+        prompt_list, tools, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers, model_name = llm.prepare_llm_response(model=llm_model, prompt_list=self.chat_history, tools=tools, llm_model_list=self.llm_model_list, id=self.chat_id, mission=self.mission_dropdown.value, system_prompt=self.system_prompt)
 
         i = 0
         while i < 5: 

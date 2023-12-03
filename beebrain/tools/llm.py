@@ -5,7 +5,7 @@
 import openai
 from openai import OpenAI
 
-import json, os, sys, time, datetime, logging
+import json, os, sys, time, datetime, logging, platform
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'tools'))
 
 from common import get_api_keys, get_tools, get_agents
@@ -74,12 +74,17 @@ def get_visual_llms():
 ### Main
 ### ---------------------------------------------------------------------
 
-def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None, id = None):
+def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None, id = None, mission = "default", system_prompt: str = None):
         # -------------------------------------
         # Getting LLM models
         # -------------------------------------
         print("model: " + str(model))
-        system_prompt = prompt_list[0]['content']
+        uname = platform.uname()
+        device = "OS: " + uname.system + " " + uname.release + " & " + uname.machine
+
+        system_prompt = system_prompt.replace("{{user_instructions}}", "")
+        system_prompt = system_prompt.replace("{{location}}", "Germany, Rheinland-Pfalz, Wachenheim an der Weinstraße")
+        system_prompt = system_prompt.replace("{{device}}", device)
         system_prompt = system_prompt.replace("{{llm_name}}", model)
         system_prompt = system_prompt.replace("{{current_date}}", datetime.datetime.now().strftime('%Y-%m-%d %H:%M') + " " + time.strftime('UTC%z'))
 
@@ -92,6 +97,22 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None, id
         # Add the files to the system prompt
         system_prompt = system_prompt.replace("{{files}}", "**In:** " + str(in_files) + "\n**Out:** " + str(out_files))
 
+        # Get the mission
+        with open("config/missions.json", "r") as file:
+            missions = json.load(file)
+            print(missions)
+        try:
+            mission = missions[mission]["mission_prompt"]
+        except:
+            try: 
+                mission = missions["default"]["mission_prompt"]
+            except:
+                mission = "Be as helpful as possible."
+
+        print("Mission: " + mission)
+        system_prompt = system_prompt.replace("{{mission}}", "# Mission \n\n" + mission)
+
+
         # Get the model
         try: 
             model = llm_model_list[model][0]
@@ -102,7 +123,6 @@ def prepare_llm_response(model: str, prompt_list, llm_model_list, tools=None, id
         system_prompt = system_prompt.replace("{{knowledge_cutoff}}", str(model["knowledge_cutoff"]))
         system_prompt = system_prompt.replace("{{image_capability}}", "")
 
-        print("System prompt: " + system_prompt)
 
         model_max_tokens = model["context_size"]
         model_max_new_tokens = model["max_output_length"]
