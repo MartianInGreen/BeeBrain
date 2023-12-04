@@ -98,7 +98,9 @@ def parse_tools():
     tool_names = []
     for tool in tools:
         human_name = tools[tool][0]["name"]
-        tool_names.append({"label": human_name, "value": tool})
+        is_enabled = tools[tool][0]["is_enabled"]
+        is_default = tools[tool][0]["is_default"]
+        tool_names.append({"label": human_name, "value": tool, "is_enabled": is_enabled, "is_default": is_default})
 
     return tool_names
 
@@ -135,6 +137,9 @@ class ChatApp(ft.UserControl):
         self.file_selector = ft.FilePicker(on_result=self.pick_file_result)
         self.file_selector_button = ft.IconButton(icon=ft.icons.ATTACH_FILE_ROUNDED, on_click=lambda _: self.file_selector.pick_files(allow_multiple=True, dialog_title="Select files to upload"))
         self.record_audio_button = ft.IconButton(icon=ft.icons.MIC_NONE_ROUNDED)
+        self.record_audio_button.disabled = True
+        self.prompt_library_button = ft.IconButton(icon=ft.icons.BOOK_ROUNDED)
+        self.prompt_library_button.disabled = True
 
         self.center_width = 800
 
@@ -314,13 +319,14 @@ class ChatApp(ft.UserControl):
         # Initialize tools list
         all_tools = parse_tools()
         for each in all_tools:
-            
-            if each["value"] in ["browser", "image", "python"]:
+
+            if each["is_default"] == True:
                 on_by_default = True
             else:
                 on_by_default = False
 
-            self.tools_list.controls.append(ft.Checkbox(label=each["label"], value=on_by_default, key=each["value"]))
+            if each["is_enabled"] == True:
+                self.tools_list.controls.append(ft.Checkbox(label=each["label"], value=on_by_default, key=each["value"]))
 
         # Construct the UI
         page.overlay.append(self.file_selector)
@@ -334,7 +340,7 @@ class ChatApp(ft.UserControl):
             content=ft.Column([
                 ft.Container(content=self.chat, expand=True),
                 ft.Column([
-                    ft.Row([self.file_selector_button, self.record_audio_button, self.text_input, self.send_button], alignment="end")
+                    ft.Row([self.file_selector_button, self.record_audio_button, self.text_input, self.prompt_library_button, self.send_button], alignment="end")
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, width=self.center_width)
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             expand=True, padding=ft.padding.symmetric(vertical=20),
@@ -633,11 +639,11 @@ class ChatApp(ft.UserControl):
 
         # user selected model 
         #vision_model = self.vision_model_dropdown.value
-        vision_model = "gpt-4-vision-preview"
+        vision_model = self.vision_model_dropdown.value
 
         # Check if the model is available
         if vision_model not in vision_models:
-            vision_model = "gpt-4-vision-preview"
+            return "Vision model not found, please try again later..."
 
         print("Using vision model: " + vision_model)
         print("Using image: " + image)

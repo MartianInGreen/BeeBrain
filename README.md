@@ -48,7 +48,7 @@ This roadmap isn't an absolute truth, more some guidelines and goals.
 - [x] Chat history
 - [x] Tool support
 - [x] Tools: Vision, Image Generation, Python, Web Browser
-- [ ] Mission Support (Characters, Specialists, etc.)
+- [x] Mission Support (Characters, Specialists, etc.)
 - [ ] Prompt Library Support
 - [ ] Basic Ui (Copying, Image Copying, Input & Output)
 - [ ] Build ready (Windows)

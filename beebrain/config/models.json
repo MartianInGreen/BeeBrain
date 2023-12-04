@@ -190,8 +190,8 @@
             "knowledge_cutoff": "2023-04",
             "max_output_length": 4095,
             "model_name": "llava-13b",
-            "provider": "replicate/yorickvp/llava-13b:e272157381e2a3bf12df3a8edd1f38d1dbd736bbb7437277c8b34175f8fce358",
-            "system_name": "yorickvp/llava-13b:e272157381e2a3bf12df3a8edd1f38d1dbd736bbb7437277c8b34175f8fce358"
+            "provider": "openrouter/haotian-liu/llava-13b",
+            "system_name": "llava-13b"
         }
     ]
   },
