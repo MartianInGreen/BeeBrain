@@ -5,6 +5,7 @@ import flet as ft
 import openai
 from openai import OpenAI
 from e2b import Sandbox, CodeInterpreter
+import pyperclip
 import json, os, base64, uuid, re, sys
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -135,6 +136,7 @@ class ChatApp(ft.UserControl):
         self.search_depth_slider = ft.Slider(min=5, max=20, divisions=3, label="{value}", value=5, on_change=lambda _: setattr(self, 'SETTING_search_depth', self.search_depth_slider.value))
 
         self.file_selector = ft.FilePicker(on_result=self.pick_file_result)
+        self.file_saver = ft.FilePicker(on_result=self.download_file)
         self.file_selector_button = ft.IconButton(icon=ft.icons.ATTACH_FILE_ROUNDED, on_click=lambda _: self.file_selector.pick_files(allow_multiple=True, dialog_title="Select files to upload"))
         self.record_audio_button = ft.IconButton(icon=ft.icons.MIC_NONE_ROUNDED)
         self.record_audio_button.disabled = True
@@ -149,6 +151,7 @@ class ChatApp(ft.UserControl):
         self.llm_model_list = get_llms()
 
         self.chat_history = None
+        self.current_image_path = None
 
         self.SETTING_search_depth = 5
 
@@ -330,6 +333,7 @@ class ChatApp(ft.UserControl):
 
         # Construct the UI
         page.overlay.append(self.file_selector)
+        page.overlay.append(self.file_saver)
         
         left = ft.Container(
             content=ft.Column([self.mission_dropdown, self.past_chats_list, self.reset_button]),
@@ -376,6 +380,23 @@ class ChatApp(ft.UserControl):
         self.page.overlay.append(ft.Audio(src=speech_file_path, autoplay=True, volume=1, balance=0))
         self.page.update()
         print("Playing Audio")
+
+    def copy_to_clipboard(self, message: str):
+        pyperclip.copy(message)
+
+    def set_self_current_image_path(self, image_path: str):
+        self.current_image_path = image_path
+
+    def download_file(self, e: ft.FilePickerResultEvent):
+
+        to_path = e.path
+        file_path = self.current_image_path
+
+        # Copy the file to the new location
+        with open(file_path, "rb") as file:
+            read_file = file.read()
+        with open(to_path, "wb") as out_file:
+            out_file.write(read_file)
 
     def speech_to_text(self, audio_file_path: str):
         audio_file = open(audio_file_path, 'rb')
@@ -458,7 +479,9 @@ class ChatApp(ft.UserControl):
                     image_paths.append(image_path)
 
                 for image in image_paths:
-                    page_images.controls.append(ft.Image(src=image, width=self.center_width/num_images))
+                    image_name = image.split("/")[-1]
+                    page_images.controls.append(ft.Image(src=image, width=self.center_width/num_images - 20))
+                    page_images.controls.append(ft.IconButton(icon=ft.icons.DOWNLOAD_ROUNDED, on_click=lambda _, image_path=image: [self.file_saver.save_file(dialog_title="Save picture as...", file_name=image_name, file_type=ft.FilePickerFileType.IMAGE, allowed_extensions=["png"]), self.set_self_current_image_path(image_path)]))
 
                 message = f"**Prompt**: '{tool_info['prompt']}'\n\n" + f"**Number of images**: {tool_info['number_of_images']}\n\n" + f"**Image aspect**: {tool_info['image_aspect']}\n\n" + f"**Image model**: {tool_info['image_model']}\n\n" + f"**Image quality**: {tool_info['image_quality']}\n\n"
             elif tool_name == "python":
@@ -472,7 +495,9 @@ class ChatApp(ft.UserControl):
                 code_artifacts = ft.Row(expand=False, wrap=True, width=self.center_width)
 
                 for artefact in artifacts:
+                    image_name = artefact.split("/")[-1]
                     code_artifacts.controls.append(ft.Image(src=artefact, width=self.center_width/len(artifacts)))
+                    code_artifacts.controls.append(ft.IconButton(icon=ft.icons.DOWNLOAD_ROUNDED, on_click=lambda _, image_path=artefact: [self.file_saver.save_file(dialog_title="Save picture as...", file_name=image_name, file_type=ft.FilePickerFileType.IMAGE, allowed_extensions=["png"]), self.set_self_current_image_path(image_path)]))
             elif tool_name == "file_upload": 
                 files = tool_info["files"]
 
@@ -481,12 +506,17 @@ class ChatApp(ft.UserControl):
                 message = f"**Files**: {files}\n\n"
                 name = "File Upload"
 
-
+        if tool_name == "python":
+            copy_message = code 
+        else:
+            copy_message = message
         message_header = ft.Container(
             content=ft.Row([
                 ft.CircleAvatar(content=content, bgcolor=ft.colors.AMBER, color=ft.colors.WHITE),
                 ft.Markdown(f"### {name}", selectable=False),
-                ft.IconButton(icon=ft.icons.SPEAKER_ROUNDED, on_click=lambda _: self.speak_message(message))
+                ft.Container(expand=True),
+                ft.IconButton(icon=ft.icons.SPEAKER_ROUNDED, on_click=lambda _: self.speak_message(copy_message)),
+                ft.IconButton(icon=ft.icons.COPY_OUTLINED, on_click=lambda _: self.copy_to_clipboard(copy_message))
             ]),
             width=self.center_width
         )
@@ -618,14 +648,14 @@ class ChatApp(ft.UserControl):
             for artefact in artifacts:
                 # save the chart to a file
                 # generate random uuid to string
-                uuid = str(base64.urlsafe_b64encode(os.urandom(15)), 'utf-8')
+                artefact_uuid = str(base64.urlsafe_b64encode(os.urandom(15)), 'utf-8')
 
-                with open("out/" + str(uuid) + ".png", 'wb') as f:
+                with open("working/" + self.chat_id + "/out/" + artefact_uuid + ".png", "wb") as f:
                     downloaded_chart = artefact.download()
 
                     # convert png bytes to a file
                     f.write(downloaded_chart)
-                    artefact_paths.append("out/" + str(uuid) + ".png")
+                    artefact_paths.append("working/" + self.chat_id + "/out/" + artefact_uuid + ".png")
 
         self.add_message_to_chat("Used tool: " + "python", "tool", "python", {"code": code, "stdout": stdout, "stderr": stderr, "artifacts": artefact_paths})
 
@@ -807,7 +837,14 @@ class ChatApp(ft.UserControl):
         function_name = tool_calls["tool_calls"][0]["function"]["name"]
         if function_name not in available_functions:
             print(f"Function {function_name} not found")
-            return None
+            error_message = f"Function {function_name} not found"
+            prompt_list.append({
+                "tool_call_id": tool_calls["tool_calls"][0]["id"],
+                "role": "tool",
+                "name": function_name,
+                "content": error_message
+            })
+            return prompt_list
 
         function_to_call = available_functions[function_name]
         print(f"Calling function {function_name}...")
@@ -818,7 +855,14 @@ class ChatApp(ft.UserControl):
             function_response = function_to_call(**function_args)
         except Exception as e:
             print(f"Error in function call {function_name}: {e}")
-            return None
+            error_message = f"Error in function call {function_name}: {e}"
+            prompt_list.append({
+                "tool_call_id": tool_calls["tool_calls"][0]["id"],
+                "role": "tool",
+                "name": function_name,
+                "content": error_message
+            })
+            return prompt_list
 
         prompt_list.append({
             "tool_call_id": tool_calls["tool_calls"][0]["id"],
@@ -955,7 +999,9 @@ class ChatApp(ft.UserControl):
                 
                     # Call the tools
                     print(tool_calls)
+
                     prompt_list = self.call_tool(tool_call_dict, prompt_list)
+
                     i += 1
                     print("Got Tool response...")
                 
