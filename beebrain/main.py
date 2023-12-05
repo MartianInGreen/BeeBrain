@@ -120,7 +120,7 @@ class ChatApp(ft.UserControl):
         self.reset_button = ft.TextButton(width=200, icon=ft.icons.AUTORENEW, text="NEW CHAT", on_click=lambda _: self.clear_chat(add_to_history=True))
         self.past_chats_list = ft.ListView(expand=True)
         self.llm_model_dropdown = ft.Dropdown(width=240, options=[], label="LLM Model")
-        self.temperature_slider = ft.Slider(min=0, max=2, divisions=21, label="{value}", value=0.7, on_change=self.change_temperature)
+        self.temperature_slider = ft.Slider(min=0, max=1, divisions=11, label="{value}", value=0.7, on_change=self.change_temperature)
         self.vision_model_dropdown = ft.Dropdown(width=200, options=[], label="Vision Model")
         self.vision_quality = ft.Dropdown(width=200, options=[ft.dropdown.Option("Low"), ft.dropdown.Option("High")], label="Vision Quality", value="High")
         self.tools_list = ft.Column(controls=[], width=200)
@@ -309,6 +309,7 @@ class ChatApp(ft.UserControl):
         self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl-replicate"))
         self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl-turbo"))
         self.image_model_dropdown.options.append(ft.dropdown.Option("dalle-3"))
+        self.image_model_dropdown.options.append(ft.dropdown.Option("dalle-2"))
         self.image_model_dropdown.value = "sd-xl-replicate"
 
         with open("config/missions.json", "r") as file:
@@ -433,7 +434,7 @@ class ChatApp(ft.UserControl):
             with open("working/" + self.chat_id + "/chat.json", "w") as file:
                 json.dump(file_chat, file)
         
-        if sender == "tool" and tool_name != None and tool_name != "file_upload":
+        if sender == "tool" and tool_name != None and tool_name != "file_upload" and add_to_history == True:
             self.chat.controls.pop()
 
         content = ""

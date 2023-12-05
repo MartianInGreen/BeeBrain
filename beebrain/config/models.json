@@ -319,8 +319,8 @@
                 ]
             }
         }
-    ], 
-    "sd-xl-turbo": [
+      ], 
+      "sd-xl-turbo": [
         {
             "model_name": "sd-xl-turbo",
             "human_name": "SD XL Turbo",
@@ -346,6 +346,23 @@
                         "width": 1344,
                         "height": 768,
                         "price": 0.004
+                    }
+                ]
+            }
+        }
+      ],
+      "dalle-2": [
+        {
+            "model_name": "dalle-2",
+            "human_name": "DALL-E 2",
+            "description": "Less expensive version of DALLE.",
+            "provider": "openai",
+            "image_types": {
+                "square": [
+                    {
+                        "width": 1024,
+                        "height": 1024,
+                        "price": 0.04
                     }
                 ]
             }
