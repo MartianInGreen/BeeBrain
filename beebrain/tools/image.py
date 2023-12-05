@@ -7,6 +7,7 @@ import os, json, requests, base64, uuid
 
 import common
 
+
 ### ----------------------------------------------------------------------
 ### settings
 ### ----------------------------------------------------------------------
@@ -147,7 +148,7 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
             for image in output:
                 image_uuid = str(uuid.uuid4())
                 response = requests.get(image)
-                with open(f'./working/{chat_id}/out/sdxl_{image_uuid}.png', 'wb') as f:
+                with open(f'./working/{chat_id}/out/sdxl-turbo_{image_uuid}.png', 'wb') as f:
                     f.write(response.content)
                 image_locations.append(f'sandbox://out/sdxl-turbo_{image_uuid}.png')
 
@@ -164,7 +165,7 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
         elif number_of_images < 1:
             number_of_images = 1
 
-        if quality == "normal":
+        if quality == "medium":
             quality = "standard"
         elif quality == "high":
             quality = "hd"
@@ -180,9 +181,9 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
 
         response = client.images.generate(
             model="dall-e-3",
-            prompt="a white siamese cat",
-            size="1024x1024",
-            quality="standard",
+            prompt=image_prompt,
+            size=image_size,
+            quality=quality,
             n=number_of_images,
         )
 
@@ -192,14 +193,57 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
 
         image_locations = []
         # Download images and save them to working/{chat_id}/out
-        for url in enumerate(image_urls):
+        for i, url in enumerate(image_urls):
             response = requests.get(url)
             image_uuid = str(uuid.uuid4())
-            with open(f'./working/{chat_id}/out/dalle3_{image_uuid}.png', 'wb') as f:
+            with open(f'working/{chat_id}/out/dalle3_{image_uuid}.png', 'wb') as f:
                 f.write(response.content)
             image_locations.append(f'sandbox://out/dalle3_{image_uuid}.png')
 
         return image_locations
     
+    # ----------------------------------------------------------------------------------------------
+    # DALLE-2
+    # ----------------------------------------------------------------------------------------------
+    if model == "dalle-2":
+        client = OpenAI()
+
+        if number_of_images > 4:
+            number_of_images = 4
+        elif number_of_images < 1:
+            number_of_images = 1
+
+        if quality == "low":
+            quality = "256x256"
+        if quality == "medium":
+            image_size = "512x512"
+        elif quality == "high":
+            image_size = "1024x1024"
+        else:
+            image_size = "512x512"
+
+        response = client.images.generate(
+            model="dall-e-2",
+            prompt=image_prompt,
+            size=image_size,
+            n=number_of_images,
+        )
+
+        image_urls = []
+        for image in response.data:
+            image_urls.append(image.url)
+
+        image_locations = []
+        # Download images and save them to working/{chat_id}/out
+        for i, url in enumerate(image_urls):
+            response = requests.get(url)
+            image_uuid = str(uuid.uuid4())
+            with open(f'working/{chat_id}/out/dalle2_{image_uuid}.png', 'wb') as f:
+                f.write(response.content)
+            image_locations.append(f'sandbox://out/dalle2_{image_uuid}.png')
+
+        return image_locations
+
 if __name__ == "__main__":
-    print(image_gen("sd-xl-turbo", "A christmas tree in a living room", 1, "square", "normal"))
+    # Change working directory to the directory of this file to one folder up
+    print(image_gen("dalle-3", "A christmas tree in a living room", 1, "square", "normal"))
