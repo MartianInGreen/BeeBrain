@@ -50,19 +50,26 @@ This roadmap isn't an absolute truth, more some guidelines and goals.
 - [x] Tools: Vision, Image Generation, Python, Web Browser
 - [x] Mission Support (Characters, Specialists, etc.)
 - [ ] Prompt Library Support
-- [ ] Basic Ui (Copying, Image Copying, Input & Output)
+- [x] Basic Ui (Copying, Image Copying, Input & Output)
 - [ ] Build ready (Windows)
 
 ## Version 0.2.0
 - [ ] Tools: Text/PDF, Wolfram Alpha, Audio Generation, Video Generation
 - [ ] Extended Interface: Seperate Tabs for Image Generation/Editing & Search
+- [ ] Extended Interface: Chat Management, Folders, Changing names, etc.
+- [ ] Extended Interface: Regenerate, Chat-Branching, Stop Generation, Better handling of adding messages to chat 
+- [ ] Memory Handling: Auto, 1+Last Prompts, Summarie
+- [ ] Better Missions: Individual default Tools
+- [ ] Automatic Tools (automatically choose tools)
 - [ ] Voice Conversations
 - [ ] Better Web Search with Seperate LLM for Search Tasks and focuses (like with Vision)(Focuses: Web, Wikipedia, Academia, YouTube, Reddit)
-- [ ] Phone UI & Android App
+- [ ] More Platforms: Phone UI & Android App
 
 ## Version 0.3.0
 - [ ] Tools: Doc Maker (PDF, CSVs, Presentations), CodeRunner (C/C++, Go, Rust, Java...), Diagram maker
-- [ ] Web App
+- [ ] Easy Tools: Add and modify tools within the app
+- [ ] Memory Handling: Long Term Memmory 
+- [ ] More Platforms: Web App, Linux App, Chrome Extention 
 - [ ] ... more to come
 
 # System Requirements
