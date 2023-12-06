@@ -1,11 +1,13 @@
 ## ai libraries
 from openai import OpenAI
 import openai
-import replicate
 
-import os, json, requests, base64, uuid 
+#import replicate
 
-import common
+
+import os, json, requests, base64, uuid, time
+
+from tools import common
 
 
 ### ----------------------------------------------------------------------
@@ -31,7 +33,7 @@ def get_models():
 def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="square", quality="normal", chat_id = None):
     quality = quality.lower()
     # SD-XL
-    if model == "sd-xl-stability" or model == "sd-xl-replicate" or model == "sd-xl-turbo":
+    if model == "sd-xl-stability" or model == "sd-xl-replicate" or model == "sd-xl-turbo" or model == "latent-consitency-model":
         negative_prompt = "ugly, deformed, noisy, blurry, distorted, out of focus, bad anatomy, extra limbs, poorly drawn face, poorly drawn hands, missing fingers"
 
         if quality == "low":
@@ -102,9 +104,9 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
             
             return paths
         elif model == "sd-xl-replicate":
-            output = replicate.run(
-                "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", 
-                input={
+            request_body = {
+                "version": "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+                "input": {
                     "prompt": image_prompt,
                     "negative_prompt": negative_prompt,
                     "width": image_width,
@@ -113,7 +115,50 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
                     "num_outputs": number_of_images,
                     "disable_safety_checker": True
                 }
+            }
+
+            start_response = requests.post(
+                "https://api.replicate.com/v1/predictions",
+                headers={
+                    "Authorization": f"Token {os.environ['REPLICATE_API_TOKEN']}",
+                    "Content-Type": "application/json",
+                },
+                json=request_body,
             )
+            
+            get_url = start_response.json()["urls"]["get"]
+
+            # Wait for the job to finish
+            is_done = False
+            while not is_done:
+                get_response = requests.get(get_url, headers={"Authorization": f"Token {os.environ['REPLICATE_API_TOKEN']}"})
+                status = get_response.json()["status"] 
+                print(status)
+                if status == "processing" or status == "starting":
+                    time.sleep(0.1)
+                elif status == "succeeded":
+                    is_done = True
+                elif status == "failed":
+                    return []
+            
+            # Get the results
+            output = get_response.json()["output"]
+            
+            # Get the results
+            output = get_response.json()["output"]
+
+            # output = replicate.run(
+            #     "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b", 
+            #     input={
+            #         "prompt": image_prompt,
+            #         "negative_prompt": negative_prompt,
+            #         "width": image_width,
+            #         "height": image_height,
+            #         "num_inference_steps": interferance_steps,
+            #         "num_outputs": number_of_images,
+            #         "disable_safety_checker": True
+            #     }
+            # )
 
             # Download images and save them to working/{chat_id}/out
             image_locations = []
@@ -132,9 +177,9 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
 
             return image_locations 
         elif model == "sd-xl-turbo":
-            output = replicate.run(
-                "fofr/sdxl-turbo:6244ebc4d96ffcc48fa1270d22a1f014addf79c41732fe205fb1ff638c409267", 
-                input={
+            request_body = {
+                "version": "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+                "input": {
                     "prompt": image_prompt,
                     "width": image_width,
                     "height": image_height,
@@ -142,7 +187,35 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
                     "num_outputs": number_of_images,
                     "agree_to_research_only": True
                 }
+            }
+
+            start_response = requests.post(
+                "https://api.replicate.com/v1/predictions",
+                headers={
+                    "Authorization": f"Token {os.environ['REPLICATE_API_TOKEN']}",
+                    "Content-Type": "application/json",
+                },
+                json=request_body,
             )
+            
+            print(start_response.json())
+            get_url = start_response.json()["urls"]["get"]
+
+            # Wait for the job to finish
+            is_done = False
+            while not is_done:
+                get_response = requests.get(get_url, headers={"Authorization": f"Token {os.environ['REPLICATE_API_TOKEN']}"})
+                status = get_response.json()["status"] 
+                print(status)
+                if status == "processing" or status == "starting":
+                    time.sleep(0.1)
+                elif status == "succeeded":
+                    is_done = True
+                elif status == "failed":
+                    return []
+            
+            # Get the results
+            output = get_response.json()["output"]
             
             image_locations = []
             for image in output:
@@ -153,7 +226,76 @@ def image_gen(model: str, image_prompt: str, number_of_images: int, image_size="
                 image_locations.append(f'sandbox://out/sdxl-turbo_{image_uuid}.png')
 
             return image_locations
+        elif model == "latent-consitency-model":
 
+            if quality == "low":
+                interferance_steps = 1
+            elif quality == "normal":
+                interferance_steps = 4
+            elif quality == "high":
+                interferance_steps = 8
+            else:
+                interferance_steps = 4
+
+            request_body = {
+                "version": "553803fd018b3cf875a8bc774c99da9b33f36647badfd88a6eec90d61c5f62fc",
+                "input": {
+                    "prompt": image_prompt,
+                    "negative_prompt": negative_prompt,
+                    "width": image_width,
+                    "height": image_height,
+                    "num_inference_steps": interferance_steps,
+                    "num_images": number_of_images,
+                    "disable_safety_checker": True
+                }
+            }
+
+            start_response = requests.post(
+                "https://api.replicate.com/v1/predictions",
+                headers={
+                    "Authorization": f"Token {os.environ['REPLICATE_API_TOKEN']}",
+                    "Content-Type": "application/json",
+                },
+                json=request_body,
+            )
+            
+            get_url = start_response.json()["urls"]["get"]
+
+            # Wait for the job to finish
+            is_done = False
+            while not is_done:
+                get_response = requests.get(get_url, headers={"Authorization": f"Token {os.environ['REPLICATE_API_TOKEN']}"})
+                status = get_response.json()["status"] 
+                print(status)
+                if status == "processing" or status == "starting":
+                    time.sleep(0.1)
+                elif status == "succeeded":
+                    is_done = True
+                elif status == "failed":
+                    return []
+            
+            # Get the results
+            output = get_response.json()["output"]
+            
+            # Get the results
+            output = get_response.json()["output"]
+
+            # Download images and save them to working/{chat_id}/out
+            image_locations = []
+            for image in output:
+                print(image)
+                image_uuid = str(uuid.uuid4())
+
+                # Download images and save them to working/{chat_id}/out
+                response = requests.get(image)
+
+                with open(f'./working/{chat_id}/out/sdxl_{image_uuid}.png', 'wb') as f:
+                    f.write(response.content)
+                image_locations.append(f'sandbox://out/sdxl_{image_uuid}.png')
+
+            print(image_locations)
+
+            return image_locations 
 
     # ----------------------------------------------------------------------------------------------
     # DALLE-3 

@@ -119,6 +119,9 @@ class ChatApp(ft.UserControl):
         self.mission_dropdown = ft.Dropdown(width=200, options=[], label="Mission")
         self.reset_button = ft.TextButton(width=200, icon=ft.icons.AUTORENEW, text="NEW CHAT", on_click=lambda _: self.clear_chat(add_to_history=True))
         self.past_chats_list = ft.ListView(expand=True)
+        self.left_collapse_button = ft.IconButton(icon=ft.icons.CHEVRON_LEFT_ROUNDED, on_click=lambda _: self.toggle_left_container())
+        self.right_collapse_button = ft.IconButton(icon=ft.icons.CHEVRON_RIGHT_ROUNDED, on_click=lambda _: self.toggle_right_container())
+
         self.llm_model_dropdown = ft.Dropdown(width=240, options=[], label="LLM Model")
         self.temperature_slider = ft.Slider(min=0, max=1, divisions=11, label="{value}", value=0.7, on_change=self.change_temperature)
         self.vision_model_dropdown = ft.Dropdown(width=200, options=[], label="Vision Model")
@@ -132,6 +135,7 @@ class ChatApp(ft.UserControl):
         self.chat = ft.Column([], scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER, auto_scroll=True)
         self.text_input = ft.TextField(label="Type your message here...", multiline=True, expand=True)
         self.send_button = ft.IconButton(icon=ft.icons.SEND_ROUNDED, on_click=self.user_send_message)
+        self.stop_button = ft.IconButton(icon=ft.icons.STOP_ROUNDED, on_click= lambda _: setattr(self, 'SETTING_stop_current_call', True))
 
         self.search_depth_slider = ft.Slider(min=5, max=20, divisions=3, label="{value}", value=5, on_change=lambda _: setattr(self, 'SETTING_search_depth', self.search_depth_slider.value))
 
@@ -143,7 +147,7 @@ class ChatApp(ft.UserControl):
         self.prompt_library_button = ft.IconButton(icon=ft.icons.BOOK_ROUNDED)
         self.prompt_library_button.disabled = True
 
-        self.center_width = 800
+        self.center_width = 1000
 
         ### -------------------------------------
         ### Non UI related variables
@@ -152,6 +156,7 @@ class ChatApp(ft.UserControl):
 
         self.chat_history = None
         self.current_image_path = None
+        self.SETTING_stop_current_call = False
 
         self.SETTING_search_depth = 5
 
@@ -205,6 +210,28 @@ class ChatApp(ft.UserControl):
                     "role": "system",
                     "content": "User uploaded the following file(s): " + str(file_names)
                 })
+
+    def toggle_left_container(self):
+        # Toggle the visibility of the left container
+        print("Toggling left container...")
+        #self.page.Row.full_container.left_container.visible = not self.page.Row.full_container.left_container.visible
+        if self.page.platform == "android":
+            if self.right_container.visible == False:
+                self.left_container.visible = not self.left_container.visible
+        else:
+            self.left_container.visible = not self.left_container.visible
+        self.page.update()
+
+    def toggle_right_container(self):
+        # Toggle the visibility of the left container
+        print("Toggling right container...")
+        #self.page.Row.full_container.left_container.visible = not self.page.Row.full_container.left_container.visible
+        if self.page.platform == "android":
+            if self.left_container.visible == False:
+                self.right_container.visible = not self.right_container.visible
+        else:
+            self.right_container.visible = not self.right_container.visible
+        self.page.update()
 
     def populate_past_chats(self):
         # Get all past chats
@@ -307,7 +334,8 @@ class ChatApp(ft.UserControl):
         # Initialize image model dropdown:
         self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl-stability"))
         self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl-replicate"))
-        self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl-turbo"))
+        #self.image_model_dropdown.options.append(ft.dropdown.Option("sd-xl-turbo"))
+        self.image_model_dropdown.options.append(ft.dropdown.Option("latent-consitency-model"))
         self.image_model_dropdown.options.append(ft.dropdown.Option("dalle-3"))
         self.image_model_dropdown.options.append(ft.dropdown.Option("dalle-2"))
         self.image_model_dropdown.value = "sd-xl-replicate"
@@ -335,28 +363,48 @@ class ChatApp(ft.UserControl):
         # Construct the UI
         page.overlay.append(self.file_selector)
         page.overlay.append(self.file_saver)
-        
-        left = ft.Container(
-            content=ft.Column([self.mission_dropdown, self.past_chats_list, self.reset_button]),
+
+        left_content = [self.mission_dropdown, self.past_chats_list, self.reset_button]
+        if page.platform == "android":
+            left_content = [self.mission_dropdown, self.past_chats_list, self.reset_button, self.left_collapse_button]
+        self.left_container = ft.Container(
+            content=ft.Column(left_content),
             width=200, bgcolor=ft.colors.BLACK, margin=ft.margin.all(2)
         )
 
-        center = ft.Container(
+        center_row = ft.Row([self.left_collapse_button, self.file_selector_button, self.record_audio_button, self.text_input, self.prompt_library_button, self.stop_button, self.send_button, self.right_collapse_button], alignment="end")
+        if page.platform == "android":
+            center_row = ft.Column([
+                ft.Row([self.text_input, self.send_button], alignment="end"),
+                ft.Row([self.left_collapse_button, self.file_selector_button, self.record_audio_button, self.prompt_library_button, self.stop_button, self.right_collapse_button], alignment="center")
+            ])
+
+        self.center_container = ft.Container(
             content=ft.Column([
                 ft.Container(content=self.chat, expand=True),
                 ft.Column([
-                    ft.Row([self.file_selector_button, self.record_audio_button, self.text_input, self.prompt_library_button, self.send_button], alignment="end")
+                    center_row
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, width=self.center_width)
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-            expand=True, padding=ft.padding.symmetric(vertical=20),
+            expand=True, padding=ft.padding.symmetric(vertical=20)
         )
 
-        right = ft.Container(
-            content=ft.Column([self.llm_model_dropdown, self.temperature_slider, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, self.vision_quality, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list], width=self.center_width, scroll="auto"),
+        right_content = [self.llm_model_dropdown, self.temperature_slider, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, self.vision_quality, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list]
+        if page.platform == "android":
+            right_content = [self.llm_model_dropdown, self.temperature_slider, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, self.vision_quality, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list, self.right_collapse_button]
+        self.right_container = ft.Container(
+            content=ft.Column(right_content, width=self.center_width, scroll="auto"),
             width=200, bgcolor=ft.colors.BLACK, margin=ft.margin.all(2)
         )
 
-        page.add(ft.Row([left, center, right], expand=True))
+        self.full_container = ft.Row([self.left_container, self.center_container, self.right_container], expand=True)
+
+        if page.platform == "android":
+            self.left_container.visible = False
+            self.right_container.visible = False
+            self.center_width = 500 
+
+        page.add(self.full_container)
         page.update()
         self.clear_chat()
         self.populate_past_chats()
@@ -880,6 +928,7 @@ class ChatApp(ft.UserControl):
         # -------------------------------------
         # Add the message to the chat
         input_text = self.text_input.value
+        self.SETTING_stop_current_call = False
 
         if not input_text:
             return
@@ -974,7 +1023,7 @@ class ChatApp(ft.UserControl):
                 content = response["content"]
                 tool_calls = response["tool_calls"]
 
-                if tool_calls:
+                if tool_calls and self.SETTING_stop_current_call == False:
                     print("Calling Tool...")
                     # Extract necessary data from the tool call
                     tool_call_id = tool_calls["id"]
@@ -1005,7 +1054,9 @@ class ChatApp(ft.UserControl):
 
                     i += 1
                     print("Got Tool response...")
-                
+                elif tool_calls and self.SETTING_stop_current_call == True:
+                    self.SETTING_stop_current_call = False
+                    break
                 # Get the message content from the response
                 elif content != None:
                     print(content)
@@ -1021,7 +1072,6 @@ class ChatApp(ft.UserControl):
                     })
                     i += 1 
                     break
-
 
 def main(page: ft.Page):
     app = ChatApp()

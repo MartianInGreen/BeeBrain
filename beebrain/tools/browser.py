@@ -1,7 +1,8 @@
 import requests, json, time, os, html, urllib.parse, re
 from bs4 import BeautifulSoup
 
-from common import get_api_keys
+from tools import common
+from tools.common import get_api_keys
 
 ### ----------------------------------------------------------------------
 ### functions

@@ -8,10 +8,11 @@ from openai import OpenAI
 import json, os, sys, time, datetime, logging, platform
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'tools'))
 
-from common import get_api_keys, get_tools, get_agents
+from tools import common, image, browser
+from tools.common import get_api_keys, get_tools, get_agents
 
-from browser import quick_search, copilot, scrape_url
-from image import image_gen
+from tools.browser import quick_search, copilot, scrape_url
+from tools.image import image_gen
 
 ### ---------------------------------------------------------------------
 ### functions
