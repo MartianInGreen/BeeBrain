@@ -49,15 +49,15 @@ This roadmap isn't an absolute truth, more some guidelines and goals.
 - [x] Tool support
 - [x] Tools: Vision, Image Generation, Python, Web Browser
 - [x] Mission Support (Characters, Specialists, etc.)
-- [ ] Prompt Library Support
 - [x] Basic Ui (Copying, Image Copying, Input & Output)
-- [ ] Build ready (Windows)
+- [x] Build ready (Windows)
 
 ## Version 0.2.0
 - [ ] Tools: Text/PDF, Wolfram Alpha, Audio Generation, Video Generation
 - [ ] Extended Interface: Seperate Tabs for Image Generation/Editing & Search
 - [ ] Extended Interface: Chat Management, Folders, Changing names, etc.
 - [ ] Extended Interface: Regenerate, Chat-Branching, Stop Generation, Better handling of adding messages to chat 
+- [ ] Extended Interface: Prompt Library Support
 - [ ] Memory Handling: Auto, 1+Last Prompts, Summarie
 - [ ] Better Missions: Individual default Tools
 - [ ] Automatic Tools (automatically choose tools)
