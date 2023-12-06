@@ -1,0 +1,234 @@
+[
+    {
+        "model": "openrouter/auto",
+        "response": false
+    },
+    {
+        "model": "mistralai/mistral-7b-instruct",
+        "response": false
+    },
+    {
+        "model": "huggingfaceh4/zephyr-7b-beta",
+        "response": false
+    },
+    {
+        "model": "openchat/openchat-7b",
+        "response": false
+    },
+    {
+        "model": "undi95/toppy-m-7b",
+        "response": false
+    },
+    {
+        "model": "gryphe/mythomist-7b",
+        "response": false
+    },
+    {
+        "model": "nousresearch/nous-capybara-34b",
+        "response": false
+    },
+    {
+        "model": "jebcarter/psyfighter-13b",
+        "response": false
+    },
+    {
+        "model": "nousresearch/nous-hermes-llama2-13b",
+        "response": false
+    },
+    {
+        "model": "phind/phind-codellama-34b",
+        "response": false
+    },
+    {
+        "model": "intel/neural-chat-7b",
+        "response": false
+    },
+    {
+        "model": "haotian-liu/llava-13b",
+        "response": false
+    },
+    {
+        "model": "meta-llama/llama-2-13b-chat",
+        "response": false
+    },
+    {
+        "model": "alpindale/goliath-120b",
+        "response": false
+    },
+    {
+        "model": "lizpreciatior/lzlv-70b-fp16-hf",
+        "response": false
+    },
+    {
+        "model": "openai/gpt-3.5-turbo",
+        "response": true
+    },
+    {
+        "model": "openai/gpt-3.5-turbo-1106",
+        "response": true
+    },
+    {
+        "model": "openai/gpt-3.5-turbo-0301",
+        "response": false
+    },
+    {
+        "model": "openai/gpt-3.5-turbo-16k",
+        "response": true
+    },
+    {
+        "model": "openai/gpt-4-1106-preview",
+        "response": true
+    },
+    {
+        "model": "openai/gpt-4",
+        "response": false
+    },
+    {
+        "model": "openai/gpt-4-0314",
+        "response": false
+    },
+    {
+        "model": "openai/gpt-4-32k",
+        "response": false
+    },
+    {
+        "model": "openai/gpt-4-32k-0314",
+        "response": false
+    },
+    {
+        "model": "openai/gpt-4-vision-preview",
+        "response": false
+    },
+    {
+        "model": "openai/text-davinci-002",
+        "response": false
+    },
+    {
+        "model": "openai/gpt-3.5-turbo-instruct",
+        "response": false
+    },
+    {
+        "model": "google/palm-2-chat-bison",
+        "response": false
+    },
+    {
+        "model": "google/palm-2-codechat-bison",
+        "response": false
+    },
+    {
+        "model": "google/palm-2-chat-bison-32k",
+        "response": false
+    },
+    {
+        "model": "google/palm-2-codechat-bison-32k",
+        "response": false
+    },
+    {
+        "model": "perplexity/pplx-70b-online",
+        "response": false
+    },
+    {
+        "model": "perplexity/pplx-7b-online",
+        "response": false
+    },
+    {
+        "model": "perplexity/pplx-7b-chat",
+        "response": false
+    },
+    {
+        "model": "perplexity/pplx-70b-chat",
+        "response": false
+    },
+    {
+        "model": "meta-llama/llama-2-70b-chat",
+        "response": false
+    },
+    {
+        "model": "nousresearch/nous-hermes-llama2-70b",
+        "response": false
+    },
+    {
+        "model": "meta-llama/codellama-34b-instruct",
+        "response": false
+    },
+    {
+        "model": "jondurbin/airoboros-l2-70b",
+        "response": false
+    },
+    {
+        "model": "migtissera/synthia-70b",
+        "response": false
+    },
+    {
+        "model": "open-orca/mistral-7b-openorca",
+        "response": false
+    },
+    {
+        "model": "teknium/openhermes-2-mistral-7b",
+        "response": false
+    },
+    {
+        "model": "teknium/openhermes-2.5-mistral-7b",
+        "response": false
+    },
+    {
+        "model": "pygmalionai/mythalion-13b",
+        "response": false
+    },
+    {
+        "model": "undi95/remm-slerp-l2-13b",
+        "response": false
+    },
+    {
+        "model": "xwin-lm/xwin-lm-70b",
+        "response": false
+    },
+    {
+        "model": "gryphe/mythomax-l2-13b-8k",
+        "response": false
+    },
+    {
+        "model": "neversleep/noromaid-20b",
+        "response": false
+    },
+    {
+        "model": "anthropic/claude-2",
+        "response": false
+    },
+    {
+        "model": "anthropic/claude-2.0",
+        "response": false
+    },
+    {
+        "model": "anthropic/claude-instant-v1",
+        "response": false
+    },
+    {
+        "model": "anthropic/claude-v1",
+        "response": false
+    },
+    {
+        "model": "anthropic/claude-1.2",
+        "response": false
+    },
+    {
+        "model": "anthropic/claude-instant-v1-100k",
+        "response": false
+    },
+    {
+        "model": "anthropic/claude-v1-100k",
+        "response": false
+    },
+    {
+        "model": "anthropic/claude-instant-1.0",
+        "response": false
+    },
+    {
+        "model": "mancer/weaver",
+        "response": false
+    },
+    {
+        "model": "gryphe/mythomax-l2-13b",
+        "response": false
+    }
+]
