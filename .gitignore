@@ -9,6 +9,9 @@ __pycache__/
 auth.yaml
 out/
 working/
+project/
+dev/*.ico
+dev/assembled
 
 # Distribution / packaging
 .Python
