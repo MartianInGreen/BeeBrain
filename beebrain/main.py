@@ -146,6 +146,7 @@ class ChatApp(ft.UserControl):
         self.record_audio_button.disabled = True
         self.prompt_library_button = ft.IconButton(icon=ft.icons.BOOK_ROUNDED)
         self.prompt_library_button.disabled = True
+        self.prompt_library_button.visible = False
 
         self.center_width = 1000
 
