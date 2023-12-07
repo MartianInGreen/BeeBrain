@@ -115,6 +115,10 @@ def encode_image(image_path):
 ### ----------------------------------------------------------
 
 class ChatApp(ft.UserControl):
+    ### ------------------------------------- #
+    ### UI Elements
+    ### ------------------------------------- #
+
     def __init__(self):
         self.mission_dropdown = ft.Dropdown(width=200, options=[], label="Mission")
         self.reset_button = ft.TextButton(width=200, icon=ft.icons.AUTORENEW, text="NEW CHAT", on_click=lambda _: self.clear_chat(add_to_history=True))
@@ -169,148 +173,6 @@ class ChatApp(ft.UserControl):
                 self.system_prompt = file.read()
 
         self.chat_id = str(uuid.uuid4())
-
-    def change_temperature(self, e):
-        self.SETTING_llm_temperature = round(e.control.value, 1)
-
-        self.temperature_slider.label = str(self.SETTING_llm_temperature)
-        self.temperature_slider.update()
-
-    def pick_file_result(self, e: ft.FilePickerResultEvent):
-        print(e.files)
-
-        if e.files != None:
-            if not os.path.exists("working/" + self.chat_id):
-                    os.mkdir("working/" + self.chat_id)
-                    os.mkdir("working/" + self.chat_id + "/out")
-                    os.mkdir("working/" + self.chat_id + "/in")
-
-            files = []
-            file_names = []
-
-            for file in e.files:
-                file_name = file.name
-                file_path = file.path
-
-                files.append({"name": file_name, "path": file_path})
-                file_names.append(file_name)
-
-            for file in files:
-                file_name = file["name"]
-                file_path = file["path"]
-
-                read_file = None
-                with open(file_path, "rb") as file:
-                    read_file = file.read()
-                with open("working/" + self.chat_id + "/in/" + file_name, "wb") as out_file:
-                    out_file.write(read_file)
-            
-            self.add_message_to_chat("Uploaded files: " + str(file_names), "tool", "file_upload", {"files": file_names})
-            if self.chat_history != None:
-                self.chat_history.append({
-                    "role": "system",
-                    "content": "User uploaded the following file(s): " + str(file_names)
-                })
-
-    def toggle_left_container(self):
-        # Toggle the visibility of the left container
-        print("Toggling left container...")
-        #self.page.Row.full_container.left_container.visible = not self.page.Row.full_container.left_container.visible
-        if self.page.platform == "android":
-            if self.right_container.visible == False:
-                self.left_container.visible = not self.left_container.visible
-        else:
-            self.left_container.visible = not self.left_container.visible
-        self.page.update()
-
-    def toggle_right_container(self):
-        # Toggle the visibility of the left container
-        print("Toggling right container...")
-        #self.page.Row.full_container.left_container.visible = not self.page.Row.full_container.left_container.visible
-        if self.page.platform == "android":
-            if self.left_container.visible == False:
-                self.right_container.visible = not self.right_container.visible
-        else:
-            self.right_container.visible = not self.right_container.visible
-        self.page.update()
-
-    def populate_past_chats(self):
-        # Get all past chats
-        past_chats = os.listdir("working")
-
-        # reverse the list so the newest chats are on top
-        past_chats.reverse()
-
-        # Add the chats to the list
-        for chat in past_chats:
-            # with open("working/" + chat + "/chat.json", "r") as file:
-            #     chat = json.load(file)[0]["content"]
-            short_chat = chat[:21]
-            self.past_chats_list.controls.append(ft.TextButton(text=short_chat, on_click=lambda _, chat=chat: self.load_chat(chat_id=chat)))
-
-        self.page.update()
-
-    def load_chat(self, chat_id: str):
-        self.clear_chat(add_to_history=True)
-        # Get the chat history
-        with open("working/" + chat_id + "/chat.json", "r") as file:
-            chat_history = json.load(file)
-
-        # Get the chat name
-        chat_name = chat_history[0]["content"]
-
-        # Set the chat id
-        self.chat_id = chat_id
-
-        # Clear the chat
-        self.chat.controls = []
-
-        # Add the chat name to the chat
-        self.add_message_to_chat("**Chat-ID:** " + chat_name, "system", add_to_history=False)
-
-        self.chat_history = []
-
-        # Add the chat history to the chat
-        for message in chat_history[0:]:
-            role = message["role"]
-            content = message["content"]
-
-            if role == "user":
-                self.add_message_to_chat(content, "user", add_to_history=False)
-                self.chat_history.append(message)
-            elif role == "assistant":
-                self.add_message_to_chat(content, "assistant", add_to_history=False)
-                self.chat_history.append(message)
-            elif role == "tool":
-                tool_name = message["tool_name"]
-                tool_info = message["tool_info"]
-
-                tool_message = {
-                    "role": "system",
-                    "content": "Used tool: " + tool_name + "\n\n" + "Tool info: " + str(tool_info)
-                }
-
-                self.chat_history.append(tool_message)
-
-                self.add_message_to_chat(content, "tool", tool_name, tool_info, add_to_history=False)
-            elif role == "system":
-                self.add_message_to_chat(content, "system", add_to_history=False)
-
-        self.chat.update()
-
-    def clear_chat(self, add_to_history=False):
-        self.chat_history = None
-        self.chat_id = datetime.datetime.now().strftime('%Y-%m-%d%H-%M-%S') + str(uuid.uuid4())
-        self.chat.controls = []
-
-        if not os.path.exists("working"):
-            os.mkdir("working")
-
-        if add_to_history == True: 
-            self.past_chats_list.controls.clear()
-            self.populate_past_chats()
-
-        self.chat.update()
 
     def build_ui(self, page):
         # TEST RESET VALUE
@@ -410,53 +272,62 @@ class ChatApp(ft.UserControl):
         self.clear_chat()
         self.populate_past_chats()
 
-    def speak_message(self, message: str):
-        # Use openai tts to speak the message
-        print("Getting audio...")
-        speech_uuid = str(uuid.uuid4())
-        speech_uuid = speech_uuid[:8]
+    def populate_past_chats(self):
+        # Get all past chats
+        past_chats = os.listdir("working")
 
-        if not os.path.exists("working/" + self.chat_id + "/speech"):
-            os.mkdir("working/" + self.chat_id + "/speech")
+        # reverse the list so the newest chats are on top
+        past_chats.reverse()
 
-        speech_file_path = "working/" + self.chat_id + "/speech/speech-" + speech_uuid + ".mp3"
-        response = openai.audio.speech.create(
-            model="tts-1",
-            voice="nova",
-            input=message,
-        )
-        response.stream_to_file(speech_file_path)
+        # Add the chats to the list
+        for chat in past_chats:
+            # with open("working/" + chat + "/chat.json", "r") as file:
+            #     chat = json.load(file)[0]["content"]
+            short_chat = chat[:21]
+            self.past_chats_list.controls.append(ft.TextButton(text=short_chat, on_click=lambda _, chat=chat: self.load_chat(chat_id=chat)))
 
-        self.page.overlay.append(ft.Audio(src=speech_file_path, autoplay=True, volume=1, balance=0))
         self.page.update()
-        print("Playing Audio")
 
-    def copy_to_clipboard(self, message: str):
-        pyperclip.copy(message)
+    def pick_file_result(self, e: ft.FilePickerResultEvent):
+        print(e.files)
 
-    def set_self_current_image_path(self, image_path: str):
-        self.current_image_path = image_path
+        if e.files != None:
+            if not os.path.exists("working/" + self.chat_id):
+                    os.mkdir("working/" + self.chat_id)
+                    os.mkdir("working/" + self.chat_id + "/out")
+                    os.mkdir("working/" + self.chat_id + "/in")
 
-    def download_file(self, e: ft.FilePickerResultEvent):
+            files = []
+            file_names = []
 
-        to_path = e.path
-        file_path = self.current_image_path
+            for file in e.files:
+                file_name = file.name
+                file_path = file.path
 
-        # Copy the file to the new location
-        with open(file_path, "rb") as file:
-            read_file = file.read()
-        with open(to_path, "wb") as out_file:
-            out_file.write(read_file)
+                files.append({"name": file_name, "path": file_path})
+                file_names.append(file_name)
 
-    def speech_to_text(self, audio_file_path: str):
-        audio_file = open(audio_file_path, 'rb')
-        
-        transcript = openai.Client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file,
-        )
+            for file in files:
+                file_name = file["name"]
+                file_path = file["path"]
 
-        return transcript.text
+                read_file = None
+                with open(file_path, "rb") as file:
+                    read_file = file.read()
+                with open("working/" + self.chat_id + "/in/" + file_name, "wb") as out_file:
+                    out_file.write(read_file)
+            
+            self.add_message_to_chat("Uploaded files: " + str(file_names), "tool", "file_upload", {"files": file_names})
+            if self.chat_history != None:
+                self.chat_history.append({
+                    "role": "system",
+                    "content": "User uploaded the following file(s): " + str(file_names)
+                })
+
+
+    ### ------------------------------------- #
+    ### Modify UI Elements
+    ### ------------------------------------- #
 
     def add_message_to_chat(self, message: str, sender: str, tool_name=None, tool_info=None, add_to_history=True):
         # Create the message row with avatar and user label
@@ -629,6 +500,307 @@ class ChatApp(ft.UserControl):
         self.chat.controls.append(message_container)
         self.chat.update()
 
+    def toggle_left_container(self):
+        # Toggle the visibility of the left container
+        print("Toggling left container...")
+        #self.page.Row.full_container.left_container.visible = not self.page.Row.full_container.left_container.visible
+        if self.page.platform == "android":
+            if self.right_container.visible == False:
+                self.left_container.visible = not self.left_container.visible
+        else:
+            self.left_container.visible = not self.left_container.visible
+        self.page.update()
+
+    def toggle_right_container(self):
+        # Toggle the visibility of the left container
+        print("Toggling right container...")
+        #self.page.Row.full_container.left_container.visible = not self.page.Row.full_container.left_container.visible
+        if self.page.platform == "android":
+            if self.left_container.visible == False:
+                self.right_container.visible = not self.right_container.visible
+        else:
+            self.right_container.visible = not self.right_container.visible
+        self.page.update()
+
+    def load_chat(self, chat_id: str):
+        self.clear_chat(add_to_history=True)
+        # Get the chat history
+        with open("working/" + chat_id + "/chat.json", "r") as file:
+            chat_history = json.load(file)
+
+        # Get the chat name
+        chat_name = chat_history[0]["content"]
+
+        # Set the chat id
+        self.chat_id = chat_id
+
+        # Clear the chat
+        self.chat.controls = []
+
+        # Add the chat name to the chat
+        self.add_message_to_chat("**Chat-ID:** " + chat_name, "system", add_to_history=False)
+
+        self.chat_history = []
+
+        # Add the chat history to the chat
+        for message in chat_history[0:]:
+            role = message["role"]
+            content = message["content"]
+
+            if role == "user":
+                self.add_message_to_chat(content, "user", add_to_history=False)
+                self.chat_history.append(message)
+            elif role == "assistant":
+                self.add_message_to_chat(content, "assistant", add_to_history=False)
+                self.chat_history.append(message)
+            elif role == "tool":
+                tool_name = message["tool_name"]
+                tool_info = message["tool_info"]
+
+                tool_message = {
+                    "role": "system",
+                    "content": "Used tool: " + tool_name + "\n\n" + "Tool info: " + str(tool_info)
+                }
+
+                self.chat_history.append(tool_message)
+
+                self.add_message_to_chat(content, "tool", tool_name, tool_info, add_to_history=False)
+            elif role == "system":
+                self.add_message_to_chat(content, "system", add_to_history=False)
+
+        self.chat.update()
+
+    def clear_chat(self, add_to_history=False):
+        self.chat_history = None
+        self.chat_id = datetime.datetime.now().strftime('%Y-%m-%d%H-%M-%S') + str(uuid.uuid4())
+        self.chat.controls = []
+
+        if not os.path.exists("working"):
+            os.mkdir("working")
+
+        if add_to_history == True: 
+            self.past_chats_list.controls.clear()
+            self.populate_past_chats()
+
+        self.chat.update()
+
+    ### ------------------------------------- #
+    ### User Actions
+    ### ------------------------------------- #
+
+    def speak_message(self, message: str):
+        # Use openai tts to speak the message
+        print("Getting audio...")
+        speech_uuid = str(uuid.uuid4())
+        speech_uuid = speech_uuid[:8]
+
+        if not os.path.exists("working/" + self.chat_id + "/speech"):
+            os.mkdir("working/" + self.chat_id + "/speech")
+
+        speech_file_path = "working/" + self.chat_id + "/speech/speech-" + speech_uuid + ".mp3"
+        response = openai.audio.speech.create(
+            model="tts-1",
+            voice="nova",
+            input=message,
+        )
+        response.stream_to_file(speech_file_path)
+
+        self.page.overlay.append(ft.Audio(src=speech_file_path, autoplay=True, volume=1, balance=0))
+        self.page.update()
+        print("Playing Audio")
+
+    def copy_to_clipboard(self, message: str):
+        pyperclip.copy(message)
+
+    def download_file(self, e: ft.FilePickerResultEvent):
+
+        to_path = e.path
+        file_path = self.current_image_path
+
+        # Copy the file to the new location
+        with open(file_path, "rb") as file:
+            read_file = file.read()
+        with open(to_path, "wb") as out_file:
+            out_file.write(read_file)
+
+    def speech_to_text(self, audio_file_path: str):
+        audio_file = open(audio_file_path, 'rb')
+        
+        transcript = openai.Client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+        )
+
+        return transcript.text
+
+    def user_send_message(self, e):
+        # -------------------------------------
+        # User Input
+        # -------------------------------------
+        # Add the message to the chat
+        input_text = self.text_input.value
+        self.SETTING_stop_current_call = False
+
+        if not input_text:
+            return
+        
+        self.add_message_to_chat(input_text, "user")
+
+        # Clear the text input field and update UI components
+        self.text_input.value = ""
+        self.text_input.update()
+        self.chat.update()
+        
+        ### -------------------------------------
+        ### Getting tools & llm
+        ### -------------------------------------
+
+        # Get the tools
+        tools = []
+        for tool in self.tools_list.controls:
+            if tool.value:
+                tools.append(tool.key)
+
+        # Check if tools is empty
+        if not tools:
+            tools = None
+
+        llm_model = self.llm_model_dropdown.value
+
+        ### -------------------------------------
+        ### Setting chat history
+        ### -------------------------------------
+
+        if self.chat_history == None:
+
+            self.chat_history = [{
+                "role": "system",
+                "content": self.system_prompt
+            }]
+
+            self.chat_history.append({
+                "role": "user",
+                "content": input_text
+            })
+        else:
+            self.chat_history.append({
+                "role": "user",
+                "content": input_text
+            })
+        
+        ### -------------------------------------
+        ### Getting LLM response
+        ### -------------------------------------
+        print(self.mission_dropdown.value)
+        prompt_list, tools, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers, model_name = llm.prepare_llm_response(model=llm_model, prompt_list=self.chat_history, tools=tools, llm_model_list=self.llm_model_list, id=self.chat_id, mission=self.mission_dropdown.value, system_prompt=self.system_prompt)
+
+        i = 0
+        while i < 5: 
+            print("Calling LLM...")
+            response = self.call_llm(prompt_list, model_name, tools, 0.7, model_max_new_tokens, llm_api_key, llm_base_url, extra_headers)
+            print("Got LLM response...")
+
+            if response == None:
+                self.add_message_to_chat("Error while calling LLM...", "system")
+
+                try: 
+                    self.chat_history.pop()
+                    if self.chat_history[-1]["role"] == "assistant" and self.chat_history[-1]["content"] == None:
+                        self.chat_history.pop()
+                    if self.chat_history[-1]["role"] == "user":
+                        self.chat_history.pop()
+    
+                except Exception as e:
+                    print("Error while removing last message from chat history: " + str(e))
+                # if prompt_list != None:
+                #     try: 
+                #         # Remove the last message from the chat history
+                #         prompt_list.pop()
+
+                #         # Check if last message was a tool call
+                #         if prompt_list[-1]["role"] == "assistant" and prompt_list[-1]["content"] == None:
+                #             # Remove the tool call from the prompt list
+                #             prompt_list.pop()
+                #         if prompt_list[-1]["role"] == "user":
+                #             # Remove the tool call from the prompt list
+                #             prompt_list.pop()
+
+                #         print("Current chat history: " + prompt_list)
+                #     except Exception as e:
+                #         print("Error while removing last message from chat history: " + str(e))
+
+                break
+            else:
+                content = response["content"]
+                tool_calls = response["tool_calls"]
+
+                if tool_calls and self.SETTING_stop_current_call == False:
+                    print("Calling Tool...")
+                    # Extract necessary data from the tool call
+                    tool_call_id = tool_calls["id"]
+                    function_name = tool_calls["function"]["name"]
+                    arguments_json = tool_calls["function"]["arguments"]
+                
+                    # Construct the tool call dictionary
+                    tool_call_dict = {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [{
+                            "id": tool_call_id,
+                            "type": "function",
+                            "function": {
+                                "name": function_name,
+                                "arguments": arguments_json
+                            }
+                        }]
+                    }
+
+                    # Add the tool call to the prompt list
+                    prompt_list.append(tool_call_dict)
+                
+                    # Call the tools
+                    print(tool_calls)
+
+                    prompt_list = self.call_tool(tool_call_dict, prompt_list)
+
+                    i += 1
+                    print("Got Tool response...")
+                elif tool_calls and self.SETTING_stop_current_call == True:
+                    self.SETTING_stop_current_call = False
+                    break
+                # Get the message content from the response
+                elif content != None:
+                    print(content)
+
+                    # replace this regex !\[.*\]\((sandbox)(.*)\) with nothing
+
+                    content = re.sub(r'!\[.*\]\((sandbox)(.*)\)', '', content)
+
+                    #self.add_message_to_chat(content, "assistant")
+                    prompt_list.append({
+                        "role": "assistant",
+                        "content": content
+                    })
+                    i += 1 
+                    break
+
+    ### ------------------------------------- #
+    ### Modify Settings
+    ### ------------------------------------- #
+
+    def change_temperature(self, e):
+        self.SETTING_llm_temperature = round(e.control.value, 1)
+
+        self.temperature_slider.label = str(self.SETTING_llm_temperature)
+        self.temperature_slider.update()
+
+    def set_self_current_image_path(self, image_path: str):
+        self.current_image_path = image_path
+   
+    ### ------------------------------------- #
+    ### LLM Functions
+    ### ------------------------------------- #
+    
     def browser(self, query: str, browse_type: str, lang: str = "en"):
         if browse_type == "quick_search":
             try: 
@@ -798,6 +970,10 @@ class ChatApp(ft.UserControl):
 
         return content
 
+    ### ------------------------------------- #
+    ### LLM Functions
+    ### ------------------------------------- #
+
     def call_llm(self, prompt_list, model_name, tools, temperature: int, max_new_tokens: int, llm_api_key: str, llm_base_url: str, extra_headers):
         client = OpenAI(api_key=llm_api_key, base_url=llm_base_url)
 
@@ -922,157 +1098,6 @@ class ChatApp(ft.UserControl):
         })
 
         return prompt_list
-
-    def user_send_message(self, e):
-        # -------------------------------------
-        # User Input
-        # -------------------------------------
-        # Add the message to the chat
-        input_text = self.text_input.value
-        self.SETTING_stop_current_call = False
-
-        if not input_text:
-            return
-        
-        self.add_message_to_chat(input_text, "user")
-
-        # Clear the text input field and update UI components
-        self.text_input.value = ""
-        self.text_input.update()
-        self.chat.update()
-        
-        ### -------------------------------------
-        ### Getting tools & llm
-        ### -------------------------------------
-
-        # Get the tools
-        tools = []
-        for tool in self.tools_list.controls:
-            if tool.value:
-                tools.append(tool.key)
-
-        # Check if tools is empty
-        if not tools:
-            tools = None
-
-        llm_model = self.llm_model_dropdown.value
-
-        ### -------------------------------------
-        ### Setting chat history
-        ### -------------------------------------
-
-        if self.chat_history == None:
-
-            self.chat_history = [{
-                "role": "system",
-                "content": self.system_prompt
-            }]
-
-            self.chat_history.append({
-                "role": "user",
-                "content": input_text
-            })
-        else:
-            self.chat_history.append({
-                "role": "user",
-                "content": input_text
-            })
-        
-        ### -------------------------------------
-        ### Getting LLM response
-        ### -------------------------------------
-        print(self.mission_dropdown.value)
-        prompt_list, tools, llm_api_key, llm_base_url, model_max_new_tokens, extra_headers, model_name = llm.prepare_llm_response(model=llm_model, prompt_list=self.chat_history, tools=tools, llm_model_list=self.llm_model_list, id=self.chat_id, mission=self.mission_dropdown.value, system_prompt=self.system_prompt)
-
-        i = 0
-        while i < 5: 
-            print("Calling LLM...")
-            response = self.call_llm(prompt_list, model_name, tools, 0.7, model_max_new_tokens, llm_api_key, llm_base_url, extra_headers)
-            print("Got LLM response...")
-
-            if response == None:
-                self.add_message_to_chat("Error while calling LLM...", "system")
-
-                try: 
-                    self.chat_history.pop()
-                    if self.chat_history[-1]["role"] == "assistant" and self.chat_history[-1]["content"] == None:
-                        self.chat_history.pop()
-                    if self.chat_history[-1]["role"] == "user":
-                        self.chat_history.pop()
-    
-                except Exception as e:
-                    print("Error while removing last message from chat history: " + str(e))
-                # if prompt_list != None:
-                #     try: 
-                #         # Remove the last message from the chat history
-                #         prompt_list.pop()
-
-                #         # Check if last message was a tool call
-                #         if prompt_list[-1]["role"] == "assistant" and prompt_list[-1]["content"] == None:
-                #             # Remove the tool call from the prompt list
-                #             prompt_list.pop()
-                #         if prompt_list[-1]["role"] == "user":
-                #             # Remove the tool call from the prompt list
-                #             prompt_list.pop()
-
-                #         print("Current chat history: " + prompt_list)
-                #     except Exception as e:
-                #         print("Error while removing last message from chat history: " + str(e))
-
-                break
-            else:
-                content = response["content"]
-                tool_calls = response["tool_calls"]
-
-                if tool_calls and self.SETTING_stop_current_call == False:
-                    print("Calling Tool...")
-                    # Extract necessary data from the tool call
-                    tool_call_id = tool_calls["id"]
-                    function_name = tool_calls["function"]["name"]
-                    arguments_json = tool_calls["function"]["arguments"]
-                
-                    # Construct the tool call dictionary
-                    tool_call_dict = {
-                        "role": "assistant",
-                        "content": None,
-                        "tool_calls": [{
-                            "id": tool_call_id,
-                            "type": "function",
-                            "function": {
-                                "name": function_name,
-                                "arguments": arguments_json
-                            }
-                        }]
-                    }
-
-                    # Add the tool call to the prompt list
-                    prompt_list.append(tool_call_dict)
-                
-                    # Call the tools
-                    print(tool_calls)
-
-                    prompt_list = self.call_tool(tool_call_dict, prompt_list)
-
-                    i += 1
-                    print("Got Tool response...")
-                elif tool_calls and self.SETTING_stop_current_call == True:
-                    self.SETTING_stop_current_call = False
-                    break
-                # Get the message content from the response
-                elif content != None:
-                    print(content)
-
-                    # replace this regex !\[.*\]\((sandbox)(.*)\) with nothing
-
-                    content = re.sub(r'!\[.*\]\((sandbox)(.*)\)', '', content)
-
-                    #self.add_message_to_chat(content, "assistant")
-                    prompt_list.append({
-                        "role": "assistant",
-                        "content": content
-                    })
-                    i += 1 
-                    break
 
 def main(page: ft.Page):
     app = ChatApp()
