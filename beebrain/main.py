@@ -324,7 +324,6 @@ class ChatApp(ft.UserControl):
                     "content": "User uploaded the following file(s): " + str(file_names)
                 })
 
-
     ### ------------------------------------- #
     ### Modify UI Elements
     ### ------------------------------------- #

@@ -1,0 +1,24 @@
+{
+    "model_id": [{
+        "id": "Internal model id",
+        "name": "Human model name",
+        "description": "Human model description",
+        "model_type": ["llm", "image", "video", "audio"],
+        "cost": {
+            "input_price": "Price per 1k Token input or other standard format",
+            "output_price": "Price per 1k Token output or other standard format"
+        },
+        "capabilities": {
+            "input": ["text", "image", "audio", "video"],
+            "output": ["text", "image", "audio", "video"],
+            "function_calling": ["true", "false"]
+        },
+        "specifics": {
+            "model_provider": ["OpenAI_api", "replicate", "openrouter"],
+            "input_context": "Length of context window if aplicable",
+            "output_lengt": "Length of output if aplicable",
+            "provider_id": "openrouter provider/model or replicate model id",
+            "knowledge_cutoff": "Knowledge cutoff if aplicable"
+        }
+    }]
+}
