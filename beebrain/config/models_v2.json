@@ -21,8 +21,8 @@
         }
     }],
     "gpt-4-vision-preview": [{
-        "id": "gpt-4-1106-preview",
-        "name": "GPT-4 Trubo",
+        "id": "gpt-4-1106-vision-preview",
+        "name": "GPT-4 Trubo (vision)",
         "description": "OpenAI's latest model and the best model currently availible with Vision.",
         "model_type": "llm",
         "cost": {
@@ -170,6 +170,28 @@
             "output_lengt": 4095,
             "provider_id": "haotian-liu/llava-13b",
             "knowledge_cutoff": "2023-04"
+        }
+    }],
+    "mixtral-8x7b-instruct": [{
+        "id": "mixtral-8x7b-instruct",
+        "name": "Mixtral 8x7B Instruct",
+        "description": "MoE Model by Mistral AI, on par with GPT-3.5",
+        "model_type": "llm",
+        "cost": {
+            "input_price": 0,
+            "output_price": 0
+        },
+        "capabilities": {
+            "input": ["text"],
+            "output": ["text"],
+            "function_calling": false
+        },
+        "specifics": {
+            "model_provider": "openrouter",
+            "input_context": 32000,
+            "output_lengt": 32000,
+            "provider_id": "mistralai/mixtral-8x7b-instruct",
+            "knowledge_cutoff": "2023"
         }
     }],
     "zephyr-7b-beta": [{
@@ -328,6 +350,24 @@
         "specifics": {
             "model_provider": "replicate",
             "provider_id": "553803fd018b3cf875a8bc774c99da9b33f36647badfd88a6eec90d61c5f62fc"
+        }
+    }],
+    "playground-v2": [{
+        "id": "playground-v2",
+        "name": "Playground v2",
+        "description": "Playground v2 is a diffusion-based text-to-image generative model trained from scratch by the research team at Playground", 
+        "model_type": "image",
+        "cost": {
+            "input_price": 0,
+            "output_price": 0.01
+        },
+        "capabilities": {
+            "input": ["text"],
+            "output": ["image"]
+        },
+        "specifics": {
+            "model_provider": "replicate",
+            "provider_id": "42fe626e41cc811eaf02c94b892774839268ce1994ea778eba97103fe1ef51b8"
         }
     }],
     "whisper-v3": [{

@@ -30,18 +30,6 @@ openai.api_key = common.get_api_keys()["openai"]
 ### functions
 ### ----------------------------------------------------------
 
-def change_image_model(model: str, settings):
-    settings["image"][0]["model"] = model
-    return settings
-
-def change_image_quality(quality: str, settings):
-    settings["image"][0]["quality"] = quality
-    return settings
-
-def change_search_depth(depth: int, settings):
-    settings["search"][0]["depth"] = depth
-    return settings
-
 def parse_llm_names():
     llms = llm.get_llms()
 
@@ -129,13 +117,13 @@ class ChatApp(ft.UserControl):
         self.llm_model_dropdown = ft.Dropdown(width=240, options=[], label="LLM Model")
         self.temperature_slider = ft.Slider(min=0, max=1, divisions=11, label="{value}", value=0.7, on_change=self.change_temperature)
         self.vision_model_dropdown = ft.Dropdown(width=200, options=[], label="Vision Model")
-        self.vision_quality = ft.Dropdown(width=200, options=[ft.dropdown.Option("Low"), ft.dropdown.Option("High")], label="Vision Quality", value="High")
+        self.vision_quality = ft.Slider(min=1, max=2, divisions=1, value=2, label="Quality: High", on_change=self.set_vision_quality)
         self.tools_list = ft.Column(controls=[], width=200)
         self.settings_list = ft.ListView()
 
         self.image_model_dropdown = ft.Dropdown(width=200, options=[], label="Image Model", on_change=lambda _: setattr(self, 'SETTING_image_model', self.image_model_dropdown.value))
-        self.image_quality_dropdown = ft.Dropdown(width=200, options=[ft.dropdown.Option("Low"), ft.dropdown.Option("Medium"), ft.dropdown.Option("High")], label="Image Quality", value="Medium", on_change=lambda _: setattr(self, 'SETTING_image_quality', self.image_quality_dropdown.value))
-
+        self.image_gen_quality_slider = ft.Slider(min=1, max=3,divisions=2, value=2, label="Quality: Medium", on_change=self.set_image_generation_quality)
+        
         self.chat = ft.Column([], scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER, auto_scroll=True)
         self.text_input = ft.TextField(label="Type your message here...", multiline=True, expand=True)
         self.send_button = ft.IconButton(icon=ft.icons.SEND_ROUNDED, on_click=self.user_send_message)
@@ -157,7 +145,20 @@ class ChatApp(ft.UserControl):
         ### -------------------------------------
         ### Non UI related variables
         ### -------------------------------------
-        self.llm_model_list = get_llms()
+        
+        #self.llm_model_list = get_llms()
+
+        self.model_list = None
+        self.llm_models = None
+        self.vision_models = None
+        self.image_models = None
+        self.audio_models = None
+
+        with open("config/templates/default.md", "r") as file:
+                self.system_prompt = file.read()
+
+        self.llm_tools = None
+        self.setup_models()
 
         self.chat_history = None
         self.current_image_path = None
@@ -168,9 +169,6 @@ class ChatApp(ft.UserControl):
         self.SETTING_image_model = "sd-xl-replicate"
         self.SETTING_image_quality = "medium"
         self.SETTING_llm_temperature = 0.7
-
-        with open("config/templates/default.md", "r") as file:
-                self.system_prompt = file.read()
 
         self.chat_id = str(uuid.uuid4())
 
@@ -212,16 +210,18 @@ class ChatApp(ft.UserControl):
         self.mission_dropdown.value = "default"
 
         # Initialize tools list
-        all_tools = parse_tools()
-        for each in all_tools:
+        for each in self.llm_tools:
 
-            if each["is_default"] == True:
+            tool = self.llm_tools[each][0]
+
+            if tool["is_default"] == True:
                 on_by_default = True
             else:
                 on_by_default = False
 
-            if each["is_enabled"] == True:
-                self.tools_list.controls.append(ft.Checkbox(label=each["label"], value=on_by_default, key=each["value"]))
+            # TODO: Implement on change mechanism!
+            if tool["is_enabled"] == True:
+                self.tools_list.controls.append(ft.Checkbox(label=tool["name"], value=on_by_default))
 
         # Construct the UI
         page.overlay.append(self.file_selector)
@@ -252,9 +252,9 @@ class ChatApp(ft.UserControl):
             expand=True, padding=ft.padding.symmetric(vertical=20)
         )
 
-        right_content = [self.llm_model_dropdown, self.temperature_slider, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, self.vision_quality, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list]
+        right_content = [self.llm_model_dropdown, self.temperature_slider, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, self.vision_quality, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_gen_quality_slider, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list]
         if page.platform == "android":
-            right_content = [self.llm_model_dropdown, self.temperature_slider, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, self.vision_quality, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_quality_dropdown, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list, self.right_collapse_button]
+            right_content = [self.llm_model_dropdown, self.temperature_slider, ft.Divider(height=9, thickness=3), ft.Text("Enabled Tools ⚒️"), self.tools_list, ft.Divider(height=9, thickness=3),  self.vision_model_dropdown, self.vision_quality, ft.Divider(height=9, thickness=3), self.image_model_dropdown, self.image_gen_quality_slider, ft.Divider(height=9, thickness=3), ft.Text("Search Results"), self.search_depth_slider, ft.Divider(height=9, thickness=3), self.settings_list, self.right_collapse_button]
         self.right_container = ft.Container(
             content=ft.Column(right_content, width=self.center_width, scroll="auto"),
             width=200, bgcolor=ft.colors.BLACK, margin=ft.margin.all(2)
@@ -498,6 +498,15 @@ class ChatApp(ft.UserControl):
         # Append the message container to the chat
         self.chat.controls.append(message_container)
         self.chat.update()
+
+    def update_chat_ui(self): 
+        pass 
+
+    def update_image_ui(self):
+        pass 
+
+    def change_ui(self):
+        pass 
 
     def toggle_left_container(self):
         # Toggle the visibility of the left container
@@ -796,8 +805,35 @@ class ChatApp(ft.UserControl):
     def set_self_current_image_path(self, image_path: str):
         self.current_image_path = image_path
    
+    def set_image_generation_quality(self, e):
+        value = int(e.control.value)
+
+        if value == 1:
+            self.SETTING_image_quality = "low"
+            self.image_gen_quality_slider.label = "Quality: Low"
+        elif value == 2:
+            self.SETTING_image_quality = "medium"
+            self.image_gen_quality_slider.label = "Quality: Medium"
+        elif value == 3:
+            self.SETTING_image_quality = "high"
+            self.image_gen_quality_slider.label = "Quality: High"
+
+        self.page.update()
+
+    def set_vision_quality(self, e):
+        value = int(e.control.value)
+
+        if value == 1:
+            self.SETTING_vision_quality = "low"
+            self.vision_quality.label = "Quality: Low"
+        elif value == 2:
+            self.SETTING_vision_quality = "high"
+            self.vision_quality.label = "Quality: High"
+
+        self.page.update()
+
     ### ------------------------------------- #
-    ### LLM Functions
+    ### LLM Tools
     ### ------------------------------------- #
     
     def browser(self, query: str, browse_type: str, lang: str = "en"):
@@ -973,7 +1009,7 @@ class ChatApp(ft.UserControl):
     ### LLM Functions
     ### ------------------------------------- #
 
-    def call_llm(self, prompt_list, model_name, tools, temperature: int, max_new_tokens: int, llm_api_key: str, llm_base_url: str, extra_headers):
+    def call_llm_old(self, prompt_list, model_name, tools, temperature: int, max_new_tokens: int, llm_api_key: str, llm_base_url: str, extra_headers):
         client = OpenAI(api_key=llm_api_key, base_url=llm_base_url)
 
         print(self.SETTING_llm_temperature)
@@ -1048,6 +1084,52 @@ class ChatApp(ft.UserControl):
         except Exception as e:
             print("Error calling API: " + str(e))
             return None
+
+    def setup_models(self):
+        self.model_list = None
+        self.llm_models = []
+        self.vision_models = []
+        self.image_models = []
+        self.audio_models = []
+        self.llm_tools = []
+
+        # Get the models
+        with open("config/models_v2.json", "r") as file:
+            self.model_list = json.load(file)
+
+        # Get the llm models
+        for model in self.model_list:
+            model = self.model_list[model][0]
+            if model["model_type"] == "llm":
+                self.llm_models.append(model)
+        
+        # Get the vision models
+        for model in self.model_list:
+            model = self.model_list[model][0]
+            if model["model_type"] == "llm":
+                input = model["capabilities"]["input"]
+                for input_type in input:
+                    if input_type == "image":
+                        self.vision_models.append(model)
+        
+        # Get the image models
+        for model in self.model_list:
+            model = self.model_list[model][0]
+            if model["model_type"] == "image":
+                self.image_models.append(model)
+
+        # Get the audio models
+        for model in self.model_list:
+            model = self.model_list[model][0]
+            if model["model_type"] == "audio":
+                self.audio_models.append(model)
+
+        # Get the llm tools
+        with open("config/tools.json", "r") as file:
+            self.llm_tools = json.load(file)
+
+    def call_llm(self, prompt_list: list, model_name: str, tools: list, temperature: float):
+        pass
 
     def call_tool(self, tool_calls, prompt_list):
         available_functions = {
