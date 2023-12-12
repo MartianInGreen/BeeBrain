@@ -28,7 +28,7 @@ def test_function_calling():
         # gets API Key from environment variable OPENAI_API_KEY
         client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
-            api_key="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",
+            api_key=os.environ["OPENROUTER_API_KEY"],
         )
 
         tools = [{
